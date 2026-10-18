@@ -3,7 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chatcommunity</title>
+    <meta
+      name="description"
+      content="Communities — a community management dashboard UI template for members, events, tasks, content and analytics. React 19, Vite 7, Tailwind v4."
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5f7" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0b0d" />
+    <title>Communities — Community Management Dashboard</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233871EE'/%3E%3Ccircle cx='12' cy='13' r='3.4' fill='white'/%3E%3Ccircle cx='20' cy='13' r='3.4' fill='%23F4405E'/%3E%3Cpath d='M7 23a5 5 0 0 1 10 0z' fill='white'/%3E%3Cpath d='M16.5 23a4.5 4.5 0 0 1 9 0z' fill='%23F4405E'/%3E%3C/svg%3E"
+    />
+    <script>
+      // Applied before first paint so the theme never flashes. Key matches src/lib/storage.js.
+      (function () {
+        try {
+          var saved = localStorage.getItem('communities.v1');
+          var pref = saved ? (JSON.parse(saved).prefs || {}).theme : 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {
+          /* storage unavailable — fall through to the light theme */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

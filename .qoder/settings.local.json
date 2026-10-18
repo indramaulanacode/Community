@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"CONTENT_BODY\\\\|const CONTENTS\\\\|body:\" src/data/seed.js | head -20; echo \"=== rows ===\"; awk '/^const CONTENTS = \\\\[/,/^\\\\]/' src/data/seed.js | grep -c \"^  \\\\[\")"
+    ]
+  }
+}

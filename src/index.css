@@ -1,1 +1,302 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* Dark mode is driven by a `.dark` class on <html>, set from persisted prefs. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   DESIGN TOKENS
+   Semantic colors are declared as plain custom properties so the
+   same utility (e.g. `bg-surface`) resolves correctly in both
+   themes. `@theme inline` registers them as Tailwind utilities.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --surface-3: #e3e6ec;
+  --elevated: #ffffff;
+
+  /* Lines */
+  --line: #e3e5ea;
+  --line-2: #ced2da;
+
+  /* Content */
+  --content: #131519;
+  --content-2: #626873;
+  --content-3: #8f96a3;
+
+  /* Brand + accent.
+     `brand` is the text/border accent, which lightens in dark mode for
+     contrast; `brand-fill` is the button background, which stays dark enough
+     to keep white label text above the 4.5:1 AA threshold in both themes. */
+  --brand: #3871ee;
+  --brand-2: #2a5ed0;
+  --brand-soft: #e9f0fe;
+  --brand-content: #1c4db4;
+
+  --accent: #f4405e;
+  --accent-2: #dc2b49;
+  --accent-soft: #fdecef;
+  --accent-content: #c02440;
+
+  --brand-fill: #2f66dd;
+  --brand-fill-2: #2858bf;
+  --accent-fill: #d92845;
+  --accent-fill-2: #c02440;
+  --danger-fill: #c22a2a;
+  --danger-fill-2: #a82020;
+
+  /* Status */
+  --success: #16a34a;
+  --success-soft: #e7f6ed;
+  --success-content: #15803d;
+
+  --warning: #d97706;
+  --warning-soft: #fdf2e3;
+  --warning-content: #b45309;
+
+  --danger: #dc2626;
+  --danger-soft: #fdeaea;
+  --danger-content: #b91c1c;
+
+  --info: #0891b2;
+  --info-soft: #e6f5f9;
+  --info-content: #0e7490;
+
+  /* Neutral badge */
+  --neutral-soft: #eceef2;
+
+  /* Chart palette */
+  --chart-1: #3871ee;
+  --chart-2: #f4405e;
+  --chart-3: #14b8a6;
+  --chart-4: #a855f7;
+  --chart-5: #f59e0b;
+  --chart-6: #64748b;
+
+  /* Elevation */
+  --elev-card: 0 1px 2px rgb(19 21 25 / 0.05), 0 1px 3px rgb(19 21 25 / 0.04);
+  --elev-pop: 0 4px 12px rgb(19 21 25 / 0.08), 0 16px 40px rgb(19 21 25 / 0.12);
+  --elev-modal: 0 24px 60px rgb(19 21 25 / 0.22);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg: #0a0b0d;
+  --surface: #141518;
+  --surface-2: #1c1e22;
+  --surface-3: #262930;
+  --elevated: #1a1c20;
+
+  --line: #26282e;
+  --line-2: #383c45;
+
+  --content: #f1f2f4;
+  --content-2: #9aa1ad;
+  --content-3: #6c7380;
+
+  --brand: #5b8cff;
+  --brand-2: #7ba3ff;
+  --brand-soft: #16233d;
+  --brand-content: #9dc0ff;
+
+  --accent: #ff5d78;
+  --accent-2: #ff7b90;
+  --accent-soft: #331520;
+  --accent-content: #ff9bab;
+
+  --brand-fill: #3a6ad9;
+  --brand-fill-2: #2f5cc0;
+  --accent-fill: #cf3450;
+  --accent-fill-2: #b82a44;
+  --danger-fill: #c9353b;
+  --danger-fill-2: #b02a30;
+
+  --success: #34d17f;
+  --success-soft: #102a1c;
+  --success-content: #6ee7a8;
+
+  --warning: #f5a524;
+  --warning-soft: #2e2113;
+  --warning-content: #fbc97a;
+
+  --danger: #f8605c;
+  --danger-soft: #301516;
+  --danger-content: #fca5a3;
+
+  --info: #38bdf8;
+  --info-soft: #10262f;
+  --info-content: #7dd3fc;
+
+  --neutral-soft: #24262c;
+
+  --chart-1: #5b8cff;
+  --chart-2: #ff5d78;
+  --chart-3: #2dd4bf;
+  --chart-4: #c084fc;
+  --chart-5: #fbbf24;
+  --chart-6: #94a3b8;
+
+  --elev-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --elev-pop: 0 4px 12px rgb(0 0 0 / 0.45), 0 16px 40px rgb(0 0 0 / 0.5);
+  --elev-modal: 0 24px 60px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-elevated: var(--elevated);
+
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+
+  --color-content: var(--content);
+  --color-content-2: var(--content-2);
+  --color-content-3: var(--content-3);
+
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-content: var(--brand-content);
+  --color-brand-fill: var(--brand-fill);
+  --color-brand-fill-2: var(--brand-fill-2);
+
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-content: var(--accent-content);
+  --color-accent-fill: var(--accent-fill);
+  --color-accent-fill-2: var(--accent-fill-2);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-content: var(--success-content);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-content: var(--warning-content);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-content: var(--danger-content);
+  --color-danger-fill: var(--danger-fill);
+  --color-danger-fill-2: var(--danger-fill-2);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-content: var(--info-content);
+
+  --color-neutral-soft: var(--neutral-soft);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  --radius-control: 0.4375rem;
+  --radius-card: 0.75rem;
+  --radius-panel: 1rem;
+
+  --shadow-card: var(--elev-card);
+  --shadow-pop: var(--elev-pop);
+  --shadow-modal: var(--elev-modal);
+
+  --breakpoint-3xl: 120rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--content);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* One focus treatment for the whole product. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-control);
+  }
+
+  ::selection {
+    background: var(--brand);
+    color: #fff;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.018em;
+    color: var(--content);
+  }
+
+  /* Scrollbars that read as part of the surface, not the OS chrome. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-2) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-2);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  /* Tabular figures stop metric cards from jittering as values change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid-fill {
+    grid-template-columns: repeat(auto-fill, minmax(var(--fill-min, 18rem), 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
