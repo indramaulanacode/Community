@@ -9,6 +9,7 @@
  *   npm run dev &
  *   node scripts/smoke.mjs
  *   node scripts/smoke.mjs --shots .shots
+ *   node scripts/smoke.mjs --shots .shots --format jpg --routes-only
  */
 import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -43,6 +44,10 @@ const ONLY = (() => {
 const THEME = (() => {
   const i = process.argv.indexOf('--theme')
   return i > -1 ? process.argv[i + 1] : null
+})()
+const FORMAT = (() => {
+  const i = process.argv.indexOf('--format')
+  return i > -1 ? (process.argv[i + 1] === 'jpg' ? 'jpeg' : process.argv[i + 1]) : 'png'
 })()
 const ROUTES_ARG = (() => {
   const i = process.argv.indexOf('--routes')
@@ -1002,8 +1007,14 @@ async function main() {
         await goto(route.path)
         await sleep(1400)
         const overflow = await evaluate(`return document.documentElement.scrollWidth - window.innerWidth`)
-        const shot = await cdp.send('Page.captureScreenshot', { format: 'png' })
-        const file = resolve(dir, `${route.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root'}.png`)
+        const shot = await cdp.send('Page.captureScreenshot', {
+          format: FORMAT,
+          ...(FORMAT === 'jpeg' ? { quality: 90 } : {}),
+        })
+        const file = resolve(
+          dir,
+          `${route.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'root'}.${FORMAT === 'jpeg' ? 'jpg' : FORMAT}`,
+        )
         await writeFile(file, Buffer.from(shot.data, 'base64'))
         if (overflow > 1) record('responsive', `horizontal overflow ${overflow}px at ${vp.width}px`, route.path)
       }
