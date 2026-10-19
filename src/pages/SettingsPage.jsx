@@ -416,8 +416,8 @@ function AppearancePanel() {
 
             <div className="border-t border-line pt-4">
               <Field
-                label="Home page"
-                hint="Where the “Home” link takes you after launch. It changes the destination only — not what is loaded."
+                label="Start screen"
+                hint="Which screen the home page opens. The logo in the sidebar takes you back to the home page."
               >
                 <Select value={landingPage} onChange={(e) => actions.setPref('landingPage', e.target.value)}>
                   <option value="dashboard">Dashboard</option>

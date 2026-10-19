@@ -10,6 +10,7 @@ import { Button } from './components/ui/Button.jsx'
 // One chunk per screen: the shell paints immediately and the page you asked for
 // streams in behind the same skeleton the store uses while it is loading.
 const PAGES = {
+  home: lazy(() => import('./pages/HomePage.jsx')),
   dashboard: lazy(() => import('./pages/DashboardPage.jsx')),
   analytics: lazy(() => import('./pages/AnalyticsPage.jsx')),
   communities: lazy(() => import('./pages/CommunitiesPage.jsx')),
@@ -91,7 +92,8 @@ export default function App() {
 
   const Page = PAGES[route.key]
 
-  if (route.key === 'signup') {
+  /* The landing page and the join form are public: no sidebar, no top bar. */
+  if (route.key === 'signup' || route.key === 'home') {
     return (
       <>
         <Suspense fallback={<LoadingView />}>

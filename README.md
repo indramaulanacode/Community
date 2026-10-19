@@ -2,7 +2,7 @@
 
 A production-shaped React dashboard for the people who run online communities: the rooms they host, the members inside them, the events, the moderation and publishing work in flight, and the numbers that show whether any of it is working.
 
-17 screens over 19 routes, one persistent local data model, and no backend. Every figure on every screen is computed from the same records, so creating a community, moving a task, registering for an event or posting a message immediately changes the dashboard, the analytics page and the badges — which is the part a static template normally fakes.
+18 screens over 20 routes, one persistent local data model, and no backend. Every figure on every screen is computed from the same records, so creating a community, moving a task, registering for an event or posting a message immediately changes the dashboard, the analytics page and the badges — which is the part a static template normally fakes.
 
 **Demo mode, stated plainly:** there is no server, no database and no authentication. The `/signup` screen is a form with real validation that hands you back to the demo; it does not create an account. State persists to `localStorage`, and a reset control lives in Settings → Demo data.
 
@@ -22,7 +22,7 @@ No API keys, no environment variables, no external services. The app runs entire
 
 ```bash
 npm ci
-npm run dev           # http://localhost:5173
+npm run dev           # http://localhost:5173 — opens on the landing page at #/
 ```
 
 | Script | What it does |
@@ -31,12 +31,12 @@ npm run dev           # http://localhost:5173
 | `npm run build` | Production build into `dist/`, route-level code splitting. |
 | `npm run preview` | Serves the built `dist/` locally. |
 | `npm run verify` | 621 logic assertions over the data model, utilities and selectors. Pure Node, no browser. |
-| `npm run smoke` | Renders **every route in real headless Chrome**, then drives **19 workflow interactions**, failing on any console error, uncaught exception, native dialog, broken asset, horizontal overflow or ignored query parameter. |
+| `npm run smoke` | Renders **every route in real headless Chrome**, then drives **20 workflow interactions**, failing on any console error, uncaught exception, native dialog, broken asset, horizontal overflow or ignored query parameter. |
 
 `npm run smoke` expects the dev server to be running (`npm run dev &`). Useful flags:
 
 ```bash
-node scripts/smoke.mjs --shots .shots            # capture 37 routes × desktop/tablet/mobile
+node scripts/smoke.mjs --shots .shots --theme light    # capture 38 routes × desktop/tablet/mobile
 node scripts/smoke.mjs --theme dark --shots .shots-dark
 node scripts/smoke.mjs --routes /analytics --routes-only
 node scripts/smoke.mjs --only /tasks             # one route and its deep links
@@ -49,14 +49,15 @@ A clean run of the whole suite looks like this:
 
 ```
 621 checks passed — data model, utils and selectors are consistent.
-37 routes · 0 errors · 0 warnings
-19 interaction checks passed
+38 routes · 0 errors · 0 warnings
+20 interaction checks passed
 ```
 
 ## Screens
 
 | Area | Routes | Notes |
 | --- | --- | --- |
+| Home | `/` | Public landing page — no sidebar, no top bar. Hero, live totals, a real chart, the 11-screen tour, five use cases and an explicit split between what works and what is simulated. Its primary button opens the screen chosen in Settings → Appearance → Start screen, and the sidebar logo comes back to it. |
 | Dashboard | `/dashboard` | Metrics, 12-month growth/engagement toggle, attention queue, upcoming events with working registration, task queue, activity feed. |
 | Analytics | `/analytics` | 12 computed metrics, growth, joins vs departures, engagement trend, community breakdown, content performance, channel activity. Range switcher (7/30/90 days/all) and CSV export. |
 | Communities | `/communities`, `/communities/:id` | Grid or table, favourites, per-community roster, channels, moderation queue, member management. |
@@ -74,20 +75,20 @@ Deep links are honoured everywhere a filter exists: `/members?status=invited`, `
 
 ## Previews
 
-`previews/` holds 86 PNGs captured from the running app — no mockups, nothing staged in an
+`previews/` holds 90 PNGs captured from the running app — no mockups, nothing staged in an
 image editor. Every number, name and date in them is the seeded demo data as it renders today.
 
 | Folder | Contents |
 | --- | --- |
-| `previews/desktop/` | The 19 routes at 1440×900 (2× density), light theme. |
-| `previews/mobile/` | The same 19 routes at 390×844, light theme. |
-| `previews/dark/` | The same 19 routes at 1440×900, dark theme. |
-| `previews/dark-mobile/` | The same 19 routes at 390×844, dark theme. |
+| `previews/desktop/` | The 20 screens at 1440×900 (2× density), light theme. |
+| `previews/mobile/` | The same 20 screens at 390×844, light theme. |
+| `previews/dark/` | The same 20 screens at 1440×900, dark theme. |
+| `previews/dark-mobile/` | The same 20 screens at 390×844, dark theme. |
 | `previews/views/` | 10 alternate states worth showing buyers: table/agenda/list views, the overdue and draft filters, the 90-day range, the unread tab, a search and the new-event dialog. |
 
-Files are numbered in tour order (`01-dashboard`, `02-analytics`, … `19-signup`), so each folder
-reads as a walk-through and the four page sets line up name for name. A tablet set (900×700) and
-the remaining deep-link states are regenerable with the commands above.
+Files are numbered in tour order (`00-home`, `01-dashboard`, … `19-signup`), so each folder reads
+as a walk-through and the four page sets line up name for name. A tablet set (900×700) and the
+remaining deep-link states are regenerable with the commands above.
 
 ## How it is built
 

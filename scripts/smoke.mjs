@@ -77,6 +77,20 @@ function routeList() {
       : pattern
     return { pattern, path }
   })
+  // The landing page renders outside the shell, so "it painted something" is not
+  // enough — check the hero is there and the sidebar is not.
+  const home = pages.find((route) => route.pattern === '/')
+  if (home) {
+    home.expect = `
+      const h1 = document.querySelector('main h1');
+      const links = document.querySelectorAll('main a[href^="#/"]').length;
+      const shell = Boolean(document.querySelector('aside'));
+      h1 && links >= 20 && !shell
+        ? 'landing renders (' + links + ' in-page links, no shell)'
+        : 'FAIL h1=' + (h1 ? JSON.stringify(h1.textContent.slice(0, 24)) : 'none') +
+          ' links=' + links + ' shell=' + shell,
+    `
+  }
   // Extra deep links that exercise filters, tabs and query params. Each one uses a
   // non-default value so a link that is silently ignored shows up as a no-op.
   const member = seed.members[3]
@@ -682,6 +696,37 @@ async function main() {
       const msg = [...document.querySelectorAll('p,span,div')].map(n => n.textContent).join(' ');
       return invalid > 0 ? 'errors shown (' + invalid + ')' : /required|enter|valid|choose/i.test(msg) ? 'message shown' : 'FAIL no validation feedback';
     `)
+  })
+
+  // The landing page is the front door, so both directions have to work.
+  await step('home CTA enters the app and the logo returns', async () => {
+    await goto('/')
+    await sleep(1500)
+    const cta = await evaluate(`
+      const link = [...document.querySelectorAll('main a')].find(a => /explore the live demo/i.test(a.textContent));
+      if (!link) return 'FAIL no CTA';
+      link.click();
+      return 'CTA href=' + link.getAttribute('href');
+    `)
+    await sleep(1300)
+    const inside = await evaluate(`
+      const hash = window.location.hash;
+      const shell = Boolean(document.querySelector('aside'));
+      return hash === '#/dashboard' && shell ? 'dashboard + shell' : 'FAIL hash=' + hash + ' shell=' + shell;
+    `)
+    const back = await evaluate(`
+      const logo = document.querySelector('aside a[aria-label="Communities home"]');
+      if (!logo) return 'FAIL no logo link';
+      logo.click();
+      return 'logo clicked';
+    `)
+    await sleep(1300)
+    const home = await evaluate(`
+      const hash = window.location.hash;
+      const hero = Boolean(document.querySelector('main h1'));
+      return hash === '#/' && hero ? 'landing page again' : 'FAIL hash=' + hash + ' hero=' + hero;
+    `)
+    return `${cta} · ${inside} · ${back} · ${home}`
   })
 
   // Kanban drag and drop, verified against the persisted store rather than paint.

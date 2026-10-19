@@ -5,7 +5,8 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 
-const DEFAULT_ROUTE = '/dashboard'
+/* The landing page is the front door; the app itself starts one click in. */
+const DEFAULT_ROUTE = '/'
 
 function readHash() {
   const raw = window.location.hash.replace(/^#/, '')

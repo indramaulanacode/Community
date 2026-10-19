@@ -27,6 +27,15 @@ component unless it is a chart colour variable.
 
 `label` is required — it becomes `aria-label` and the tooltip.
 
+```jsx
+<Link to="/dashboard" className={buttonClass({ variant: 'primary', size: 'lg' })}>Open</Link>
+```
+
+`buttonClass` returns the same classes `Button` applies, for the cases where the
+clickable has to be a real anchor — a navigation target you should be able to
+cmd-click or copy. `Button` itself always renders a `<button>`, so do not nest one
+inside the other.
+
 ## Form.jsx
 
 ```jsx
@@ -229,10 +238,15 @@ screen; `verify.mjs` asserts `oneOf` on invented, missing and unknown values.
 
 `src/routes.js` is the single source of truth: `NAV_GROUPS` for the sidebar and
 `ROUTES`, an ordered list of `{ pattern, key, title, nav }`. `App.jsx` reads the same
-table for the document title, the active nav item and the breadcrumb, and
-`scripts/smoke.mjs` parses it to walk every route — so a new screen is registered in
-exactly one place. Patterns use `:param` segments, resolved by `useRoute(routes)`; the
-query string is stripped before matching and handed to the page as a `URLSearchParams`.
+table for the active nav item and the breadcrumb, and `scripts/smoke.mjs` parses it to
+walk every route — so a new screen is registered in exactly one place. Patterns use
+`:param` segments, resolved by `useRoute(routes)`; the query string is stripped before
+matching and handed to the page as a `URLSearchParams`.
+
+Two routes render outside the shell, with no sidebar and no top bar: `/` (the landing
+page) and `/signup`. `App.jsx` branches on `route.key` for both, and an empty hash
+resolves to `/`, so the product opens on the landing page and one click takes you into
+the app. Everything else is wrapped in the shell.
 
 The ⌘K search is separate: `SEARCH_SOURCES` in `TopBar.jsx` maps a record collection to
 its detail route, so results are real members, events and tasks rather than a list of

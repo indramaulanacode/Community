@@ -27,11 +27,17 @@ account, and nothing leaves the browser.
 
 | Region | What it holds |
 | --- | --- |
-| Sidebar (left) | Eleven destinations in four groups — Overview, Manage, Connect, Account — plus your own card at the bottom. Collapsible to icons. |
+| Sidebar (left) | Eleven destinations in four groups — Overview, Manage, Connect, Account — plus your own card at the bottom. Collapsible to icons. The brand at the top links back to the home page. |
 | Top bar | Breadcrumb, global search (⌘K), notifications bell, theme control, your avatar menu. |
 | Page header | The screen's title, what it counts, and the actions that belong to it. |
 | Toolbar | Search, filters, then the view switch (grid/table/board/list/month/agenda). |
 | Content | The work. Lists are paginated; empty results always offer a "Clear filters" action. |
+
+Open the app and you arrive on the **home page** (`#/`) — what the template is, all eleven
+screens with one line each, five use cases, and an explicit list of what works versus what is
+simulated. Its primary button takes you into the app on your start screen (Settings →
+Appearance → Start screen, Dashboard by default), and the sidebar brand brings you back out.
+It reads the same live store as everything else, so its counts change as you work.
 
 Start on **Dashboard**. Its "Needs your attention" card is the intended entry point, and
 each row is a button onto the exact filtered view where you can act:
@@ -155,8 +161,9 @@ sidebar badge follows.
 ### Make it yours
 
 Settings → **Appearance**: theme (system / light / dark), start with the sidebar
-collapsed, and which page "Home" points at. Below the controls is a live specimen — real
-components in the current theme, not a preview image.
+collapsed, and the **Start screen** — which page the home page's primary button opens.
+Below the controls is a live specimen — real components in the current theme, not a
+preview image.
 
 Settings → **Profile** edits your display name, handle, email, job title, location and
 bio. **Workspace** holds the name, plan, seat limit, domain, timezone and billing

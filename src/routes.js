@@ -53,6 +53,8 @@ export const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 
 /** Ordered route table — most specific patterns are matched first. */
 export const ROUTES = [
+  { pattern: '/', key: 'home', nav: 'home', title: 'Home' },
+
   { pattern: '/dashboard', key: 'dashboard', nav: 'dashboard', title: 'Dashboard' },
   { pattern: '/analytics', key: 'analytics', nav: 'analytics', title: 'Analytics' },
 

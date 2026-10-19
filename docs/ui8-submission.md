@@ -25,12 +25,13 @@ for a real API.
 
 Communities is a React 19 + Tailwind v4 dashboard for running many communities at once:
 8 seeded communities, 51 members, 25 events, 31 tasks, 28 pieces of content, 6
-collections, 6 conversations and 14 notifications, all cross-linked. 19 routes across 17
-page modules — directory and detail views, a kanban board with drag and drop, a month
-calendar with registration, a content workflow from draft to scheduled to published,
-threaded messages, and a settings area that actually writes preferences. Charts are SVG
-drawn from the live records. Light and dark themes are token-driven and persist across a
-reload. Built with four runtime dependencies and no UI library.
+collections, 6 conversations and 14 notifications, all cross-linked. 20 routes across 18
+page modules — a public landing page that presents the product, directory and detail views,
+a kanban board with drag and drop, a month calendar with registration, a content workflow
+from draft to scheduled to published, threaded messages, and a settings area that actually
+writes preferences. Charts are SVG drawn from the live records. Light and dark themes are
+token-driven and persist across a reload. Built with four runtime dependencies and no UI
+library.
 
 ## Feature highlights
 
@@ -78,13 +79,18 @@ vocabulary instead of rebuilding the screens.
 | Professional networks | Member directory with roles, statuses and profiles, channels on the community detail page, messages |
 | Membership organizations | Member statuses (active/invited/inactive/suspended), community ownership, notifications and digest preferences |
 
+The landing page frames the same coverage by the job rather than the community type — run a
+network, put on events, work a moderation queue, ship a content calendar, report on any of it
+— because that is the question a buyer actually asks. Both framings point at real screens.
+
 ## Route and feature inventory
 
-19 patterns → 17 page modules (Messages and Settings each serve two patterns). Every row
+20 patterns → 18 page modules (Messages and Settings each serve two patterns). Every row
 below is rendered in the smoke run at three breakpoints.
 
 | Route | Page | What works |
 | --- | --- | --- |
+| `/` | HomePage | Public landing page, no shell: hero with live counts, real growth chart, the eleven screens grouped as cards, five use cases, and an explicit split between what is implemented and what is simulated. Theme control, and its primary button opens the configured start screen. An empty hash resolves here. |
 | `/dashboard` | DashboardPage | Metric row, growth and engagement charts, my tasks, upcoming events, activity feed |
 | `/analytics` | AnalyticsPage | Range switch (`?range=7d/30d/90d`), KPI grid with deltas, line/bar/ranked/donut charts, community leaderboard |
 | `/communities` | CommunitiesPage | Grid + table views (the choice persists as a preference), search, category filter, four sorts (members, engagement, needs attention, recently created), create dialog with validation, favourite toggle, "New event here", copy shareable link |
@@ -101,7 +107,7 @@ below is rendered in the smoke run at three breakpoints.
 | `/messages` | MessagesPage | Conversation rail, unread state, empty state when no conversation selected |
 | `/messages/:id` | MessagesPage thread | Message list, send with validation, details pane, mark read |
 | `/notifications` | NotificationsPage | All/unread tabs, mark read, mark all read, per-type icons, deep link to the referenced record |
-| `/settings` `/settings/:section` | SettingsPage | Profile, Workspace, Appearance (theme, collapsed sidebar, landing page, live component specimen), Notifications (per-topic switches), Security, Demo data (JSON export, reset with confirmation) |
+| `/settings` `/settings/:section` | SettingsPage | Profile, Workspace, Appearance (theme, collapsed sidebar, start screen, live component specimen), Notifications (per-topic switches), Security, Demo data (JSON export, reset with confirmation) |
 | `/signup` | SignupPage | Join form with four required fields validated inline, email opt-in checkbox, community-focus select, live product preview, theme control; a valid submit writes the workspace into the store and routes to the dashboard |
 | anything else | NotFound (inline) | Explains the bad hash and links back to the dashboard |
 
@@ -110,13 +116,13 @@ below is rendered in the smoke run at three breakpoints.
 All 9 subjects map to files that already exist in this repository, captured by
 `npm run smoke` against the running app — not mockups, not retouched.
 
-`previews/` is the curated set shipped with the product — 86 files, all captured from the
-running app. Four page sets hold the same 19 routes numbered in tour order: `desktop/` and
-`mobile/` in light theme (1440×900 and 390×844), `dark/` and `dark-mobile/` in dark theme at
-the same sizes. `views/` adds 10 alternate states (table/agenda/list views, filters, the
-90-day range, the unread tab, a search, the new-event dialog). The complete 37-shot set per
-theme per breakpoint lives in `.shots/` and `.shots-dark/` (regenerate with the commands
-below).
+`previews/` is the curated set shipped with the product — 90 files, all captured from the
+running app. Four page sets hold the same 20 screens numbered in tour order (`00-home` …
+`19-signup`): `desktop/` and `mobile/` in light theme (1440×900 and 390×844), `dark/` and
+`dark-mobile/` in dark theme at the same sizes. `views/` adds 10 alternate states
+(table/agenda/list views, filters, the 90-day range, the unread tab, a search, the
+new-event dialog). The complete 38-shot set per theme per breakpoint lives in `.shots/`
+and `.shots-dark/` (regenerate with the commands below).
 
 | # | Subject | Files |
 | --- | --- | --- |
@@ -132,6 +138,10 @@ below).
 
 Every subject is answerable from `previews/` alone; the `.shots*` folders exist so a reviewer
 can regenerate the set rather than trust the PNGs.
+
+For the listing cover, `desktop/00-home.png` is the strongest single frame — the landing page
+is the product summarising itself, with live counts and a real chart rather than a staged
+mock-up. `dark/00-home.png` is the same page in dark.
 
 Capture commands (a local Chrome is the only extra requirement):
 
@@ -152,8 +162,9 @@ mutated.
 
 Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
 
-1. **Dashboard** (0:00) — open on the growth chart. Point at the last month: it is
-   *this* month, counted live.
+1. **Landing page → Dashboard** (0:00) — the app opens on `#/`: live counts, a real chart,
+   the eleven screens named and linked. Click "Explore the live demo". On the dashboard,
+   point at the last month of the growth chart: it is *this* month, counted live.
 2. **Create** (0:10) — Communities → New community → submit empty to show the inline
    error → fill it in → create. The card appears, the directory count and every
    community filter in the product gain the new option.
@@ -176,14 +187,14 @@ Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
 index.html                  vite.config.js            package.json  package-lock.json
 README.md                   .gitignore                LICENSE (to be chosen by the author)
 docs/usage-guide.md       docs/ui-kit.md          docs/ui8-submission.md
-previews/                 (86 product screenshots: desktop, mobile, dark, dark-mobile, views)
+previews/                 (90 product screenshots: desktop, mobile, dark, dark-mobile, views)
 scripts/verify.mjs          scripts/smoke.mjs
 src/
   App.jsx  main.jsx  routes.js  index.css
   components/ui/            8 primitive modules (Button, Form, Surface, Data,
                             Navigation, Overlay, Feedback, Charts)
   components/layout/        Sidebar.jsx  TopBar.jsx
-  pages/                    17 page modules + content/ events/ messages/ helpers
+  pages/                    18 page modules + content/ events/ messages/ helpers
   store/                    AppStore.jsx (reducer + persistence)  selectors.js
   data/seed.js              the whole demo dataset
   lib/                      router.jsx  storage.js  utils.js
@@ -228,18 +239,23 @@ backend, no environment variables, no secrets.
 
 Items 1–3 are blockers; 4–6 are quality signals; 7 is the author's own decision.
 
-1. **Commit the current tree.** 42 files under `src/`, `docs/`, `scripts/`, `.gitignore`
-   and the rewritten `README.md` are still untracked, and the old app's components show
-   as deletions. A buyer who clones today gets the *previous* product.
+1. **Commit the working tree.** The rebuild itself is in (`b6e0f80 update`) and `previews/`
+   is tracked. Still uncommitted as this was written: `src/pages/HomePage.jsx`, the routing
+   and shell changes in `src/routes.js`, `src/App.jsx`, `src/lib/router.jsx`,
+   `src/components/layout/Sidebar.jsx`, `src/components/ui/Button.jsx`,
+   `src/pages/SettingsPage.jsx`, `scripts/smoke.mjs`, the three files under `docs/` plus
+   `README.md`, and the four `previews/*/00-home.png`. A buyer who clones today gets the
+   product without its landing page.
 2. **Untrack build and dependency output.** `git ls-files` reports 6,256 files under
-   `node_modules/` and 3 under `dist/` committed to the repository. `.gitignore` already
-   lists them, but ignore rules do not apply to already-tracked paths:
+   `node_modules/`, 1 under `dist/` and 111 under `.shots-dark/` committed to the
+   repository. `.gitignore` already lists them, but ignore rules do not apply to
+   already-tracked paths:
    `git rm -r --cached node_modules dist .shots-dark` then commit. Without this the download is
    hundreds of megabytes of dependencies. (`.shots-dark/` is in `.gitignore` but was committed
    before the rule existed, so it needs the explicit `--cached` removal; `.shots/` never got in.)
 3. **Choose and add `LICENSE`.** `README.md` currently defers the template licence to the
    UI8 listing; the marketplace needs an explicit file before review.
-4. **Keep `previews/` in step with the code.** The 86 files there were captured from this
+4. **Keep `previews/` in step with the code.** The 90 files there were captured from this
    build; re-run both sets after any UI change, and re-shoot at whatever resolution UI8
    finally asks for:
    `npm run smoke -- --shots .shots --theme light --routes-only` then

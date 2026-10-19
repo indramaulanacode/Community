@@ -25,7 +25,24 @@ const SIZES = {
 /**
  * Every clickable in the product. `variant` picks the visual weight, `size`
  * the height; both are deliberately closed sets so buttons cannot drift.
+ * `buttonClass` is exported so an anchor can wear the same skin without
+ * losing cmd-click, middle-click and the back button.
  */
+export function buttonClass({
+  variant = 'secondary',
+  size = 'md',
+  className = '',
+  disabled = false,
+} = {}) {
+  return cn(
+    'inline-flex shrink-0 items-center justify-center rounded-control font-medium whitespace-nowrap transition-[background-color,color,border-color,transform] duration-150 disabled:cursor-not-allowed disabled:opacity-60',
+    VARIANTS[variant],
+    SIZES[size],
+    disabled && 'pointer-events-none opacity-60',
+    className,
+  )
+}
+
 export function Button({
   variant = 'secondary',
   size = 'md',
@@ -41,12 +58,7 @@ export function Button({
     <button
       type="button"
       disabled={disabled || loading}
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-control font-medium whitespace-nowrap transition-[background-color,color,border-color,transform] duration-150 disabled:cursor-not-allowed disabled:opacity-60',
-        VARIANTS[variant],
-        SIZES[size],
-        className,
-      )}
+      className={buttonClass({ variant, size, className })}
       {...rest}
     >
       {loading ? (
