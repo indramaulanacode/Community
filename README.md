@@ -32,6 +32,7 @@ npm run dev           # http://localhost:5173 — opens on the landing page at #
 | `npm run preview` | Serves the built `dist/` locally. |
 | `npm run verify` | 621 logic assertions over the data model, utilities and selectors. Pure Node, no browser. |
 | `npm run smoke` | Renders **every route in real headless Chrome**, then drives **20 workflow interactions**, failing on any console error, uncaught exception, native dialog, broken asset, horizontal overflow or ignored query parameter. |
+| `npm run package` | Assembles `ui8-upload/` and `ui8-upload.zip` from the allowlist in `scripts/package.mjs`, then verifies nothing development-only leaked in. |
 
 `npm run smoke` expects the dev server to be running (`npm run dev &`). Useful flags:
 
@@ -90,6 +91,21 @@ Files are numbered in tour order (`00-home`, `01-dashboard`, … `19-signup`), s
 as a walk-through and the four page sets line up name for name. A tablet set (900×700) and the
 remaining deep-link states are regenerable with the commands above.
 
+## Upload package
+
+`npm run package` writes `ui8-upload/` plus `ui8-upload.zip` — the customer-facing tree, assembled
+from the explicit allowlist at the top of `scripts/package.mjs`: the app source, the preview
+screenshots, `docs/usage-guide.md`, `docs/ui-kit.md`, the three scripts and the manifest files.
+Development material (`node_modules/`, `dist/`, `.shots*/`, `.git`, local notes) is on a denylist
+inside the same file, cannot be matched by any allowlist entry, and the run fails if anything
+unexpected turns up in the output. It is safe to re-run: it only ever rebuilds a directory it
+created itself, and refuses to overwrite one without its marker.
+
+The package is source, not a build — the customer runs `npm install && npm run dev`. A `LICENSE`
+at the repository root is picked up automatically once it exists; add one before submitting if the
+marketplace requires it. `--no-previews` drops the 90 screenshots (57 files, 0.8 MB) for the case
+where the listing images go up separately.
+
 ## How it is built
 
 ```
@@ -115,10 +131,14 @@ src/
 scripts/
   verify.mjs            # logic assertions (Node)
   smoke.mjs             # real-browser route + interaction harness
+  package.mjs           # assemble the upload directory (npm run package)
 docs/
   usage-guide.md        # how to use the product, screen by screen
   ui-kit.md             # primitive API and conventions
-  ui8-submission.md     # listing copy, walkthrough, checklist
+previews/
+  desktop/ mobile/      # every screen in light, at 1440 and 390
+  dark/ dark-mobile/    # the same screens in dark
+  views/                # state variants: ranges, filters, modals, empty results
 ```
 
 Three rules keep the codebase honest:

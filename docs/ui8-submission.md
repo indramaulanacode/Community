@@ -183,12 +183,16 @@ Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
 
 ## Files the customer receives
 
+`npm run package` writes them into `ui8-upload/` (and `ui8-upload.zip`) — 147 files, 25.3 MB,
+assembled from the allowlist at the top of `scripts/package.mjs`. The directory is source, not a
+build: the customer runs `npm install && npm run dev`.
+
 ```
 index.html                  vite.config.js            package.json  package-lock.json
-README.md                   .gitignore                LICENSE (to be chosen by the author)
-docs/usage-guide.md       docs/ui-kit.md          docs/ui8-submission.md
+README.md                   .gitignore                LICENSE (picked up automatically once it exists)
+docs/usage-guide.md       docs/ui-kit.md
 previews/                 (90 product screenshots: desktop, mobile, dark, dark-mobile, views)
-scripts/verify.mjs          scripts/smoke.mjs
+scripts/verify.mjs          scripts/smoke.mjs         scripts/package.mjs
 src/
   App.jsx  main.jsx  routes.js  index.css
   components/ui/            8 primitive modules (Button, Form, Surface, Data,
@@ -200,7 +204,11 @@ src/
   lib/                      router.jsx  storage.js  utils.js
 ```
 
-45 files in `src`, ~17.6k lines. Three runtime dependencies (`react`, `react-dom`,
+This file (`docs/ui8-submission.md`), `promt.md`, `.qoder/`, `.shots*/`, `node_modules/`, `dist/`
+and `.git/` are on the packager's denylist and stay with the author; the build fails if any of
+them turns up in the output.
+
+46 files in `src`, ~18.4k lines. Three runtime dependencies (`react`, `react-dom`,
 `lucide-react`), four dev dependencies (`vite`, `@vitejs/plugin-react`, `tailwindcss`,
 `@tailwindcss/vite`). No fonts, no stock imagery, no icons beyond lucide (ISC), no
 backend, no environment variables, no secrets.
@@ -239,30 +247,33 @@ backend, no environment variables, no secrets.
 
 Items 1–3 are blockers; 4–6 are quality signals; 7 is the author's own decision.
 
-1. **Commit the working tree.** The rebuild itself is in (`b6e0f80 update`) and `previews/`
-   is tracked. Still uncommitted as this was written: `src/pages/HomePage.jsx`, the routing
-   and shell changes in `src/routes.js`, `src/App.jsx`, `src/lib/router.jsx`,
-   `src/components/layout/Sidebar.jsx`, `src/components/ui/Button.jsx`,
-   `src/pages/SettingsPage.jsx`, `scripts/smoke.mjs`, the three files under `docs/` plus
-   `README.md`, and the four `previews/*/00-home.png`. A buyer who clones today gets the
-   product without its landing page.
-2. **Untrack build and dependency output.** `git ls-files` reports 6,256 files under
-   `node_modules/`, 1 under `dist/` and 111 under `.shots-dark/` committed to the
-   repository. `.gitignore` already lists them, but ignore rules do not apply to
-   already-tracked paths:
-   `git rm -r --cached node_modules dist .shots-dark` then commit. Without this the download is
-   hundreds of megabytes of dependencies. (`.shots-dark/` is in `.gitignore` but was committed
-   before the rule existed, so it needs the explicit `--cached` removal; `.shots/` never got in.)
-3. **Choose and add `LICENSE`.** `README.md` currently defers the template licence to the
-   UI8 listing; the marketplace needs an explicit file before review.
+1. **Commit the working tree.** The landing page and its shell/routing changes are in
+   (`3d5ee89`, `ff38ecb`). Uncommitted as this was written: `scripts/package.mjs` plus the
+   `.gitignore`, `package.json`, `README.md` and this file's edits that document it.
+2. **Untrack build and dependency output.** `git ls-files` reports 6,518 tracked files, of
+   which 6,256 are under `node_modules/`, 111 under `.shots-dark/`, 1 under `dist/` and 1 is
+   `.qoder/settings.local.json` — the product itself is 150. `.gitignore` lists all of them, but
+   ignore rules do not apply to already-tracked paths, so they need the explicit
+   `git rm -r --cached node_modules dist .shots-dark .qoder` and a commit. This only matters if
+   UI8 is given the *repository*; `npm run package` never copies them.
+3. **Choose and add `LICENSE`.** `README.md` currently defers the template licence to the UI8
+   listing; the marketplace needs an explicit file before review. Put it at the repository root
+   and `npm run package` ships it — the packager deliberately does not invent one.
 4. **Keep `previews/` in step with the code.** The 90 files there were captured from this
    build; re-run both sets after any UI change, and re-shoot at whatever resolution UI8
    finally asks for:
    `npm run smoke -- --shots .shots --theme light --routes-only` then
    `npm run smoke -- --shots .shots-dark --theme dark --routes-only`.
-5. Run the full validation trio one last time on a clean install:
-   `rm -rf node_modules && npm ci && npm run verify && npm run build && npm run smoke`.
-6. Remove development-only files from the package if UI8 wants a zip rather than a repo:
-   `promt.md`, `.qoder/`, `.shots*/`.
+5. **Run the validation trio on a clean install.** Done for this package: `ui8-upload/` was
+   copied to a scratch directory, `npm install --prefer-offline` added 79 packages, then
+   `npm run verify` → 621 checks passed, `npm run build` → clean (HomePage its own 13.86 kB
+   chunk, entry 333.11 kB / gzip 105.25 kB), and the full `node scripts/smoke.mjs` →
+   **38 routes · 0 errors · 0 warnings** with all 20 interaction checks. Re-run after any
+   change, in the packaged copy rather than the repository, so the upload stays free of
+   `node_modules/` and `dist/`.
+6. **Package, do not copy.** `npm run package` is the step that keeps development-only files
+   out of the upload (`promt.md`, `.qoder/`, `.shots*/`, `node_modules/`, `dist/`). It writes
+   the manifest of exactly what shipped to `ui8-upload/.communities-package` — check that file
+   before zipping by hand, and re-run the packager rather than editing the output.
 7. Record the demo walkthrough above (60–90 s) — it is the single strongest acceptance
    signal for a "functional template" claim.

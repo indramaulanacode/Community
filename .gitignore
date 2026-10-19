@@ -26,3 +26,7 @@ npm-debug.log*
 # generated smoke captures (npm run smoke -- --shots .shots --theme light|dark)
 .shots/
 .shots-dark/
+
+# generated upload package (npm run package)
+ui8-upload/
+ui8-upload.zip
