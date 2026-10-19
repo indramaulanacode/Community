@@ -46,8 +46,9 @@ Implemented and covered by the automated checks:
   list; communities, members, events and content offer view switches; events add a
   month/week/agenda calendar. Each choice is validated against the URL, so
   `#tasks?view=list` and `#events?view=agenda` deep link.
-- **Forms that validate.** The signup flow reports 8 field errors on an empty submit;
-  community creation blocks an empty name; the content and event forms check every
+- **Forms that validate.** The signup form flags all four required fields on an empty
+  submit (4 `aria-invalid` controls + 4 `role="alert"` messages);
+  community creation flags its two required fields and refuses to close; the content and event forms check every
   required field inline (title, community, type, date, time) before they will save.
   Results come back as a toast, or a `StatusMessage` where the action stays on-screen
   (event form, bulk member changes).
@@ -86,7 +87,7 @@ below is rendered in the smoke run at three breakpoints.
 | --- | --- | --- |
 | `/dashboard` | DashboardPage | Metric row, growth and engagement charts, my tasks, upcoming events, activity feed |
 | `/analytics` | AnalyticsPage | Range switch (`?range=7d/30d/90d`), KPI grid with deltas, line/bar/ranked/donut charts, community leaderboard |
-| `/communities` | CommunitiesPage | Grid + table views, search, category and status filters, sort, create dialog with validation, archive/delete, copy shareable link |
+| `/communities` | CommunitiesPage | Grid + table views (the choice persists as a preference), search, category filter, four sorts (members, engagement, needs attention, recently created), create dialog with validation, favourite toggle, "New event here", copy shareable link |
 | `/communities/:id` | CommunityDetailPage | 6 tabs (overview, members, channels, events, tasks, content), member roster with role changes, join/leave with confirmation, edit, favourite |
 | `/members` | MembersPage | Table + grid, search, status and community filters, sort, bulk selection with bulk status change, invite dialog, CSV export |
 | `/members/:id` | MemberDetailPage | Profile, 4 tabs (overview, activity, content, tasks), editable fields, role change that syncs the community's moderator list, suspend, remove from workspace (which clears every membership first) |
@@ -101,7 +102,7 @@ below is rendered in the smoke run at three breakpoints.
 | `/messages/:id` | MessagesPage thread | Message list, send with validation, details pane, mark read |
 | `/notifications` | NotificationsPage | All/unread tabs, mark read, mark all read, per-type icons, deep link to the referenced record |
 | `/settings` `/settings/:section` | SettingsPage | Profile, Workspace, Appearance (theme, collapsed sidebar, landing page, live component specimen), Notifications (per-topic switches), Security, Demo data (JSON export, reset with confirmation) |
-| `/signup` | SignupPage | Multi-field join form, 8-field validation pass, checkbox and select states, success state |
+| `/signup` | SignupPage | Join form with four required fields validated inline, email opt-in checkbox, community-focus select, live product preview, theme control; a valid submit writes the workspace into the store and routes to the dashboard |
 | anything else | NotFound (inline) | Explains the bad hash and links back to the dashboard |
 
 ## Suggested screenshots
@@ -164,7 +165,7 @@ Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
 ```
 index.html                  vite.config.js            package.json  package-lock.json
 README.md                   .gitignore                LICENSE (to be chosen by the author)
-docs/ui-kit.md              docs/ui8-submission.md
+docs/usage-guide.md       docs/ui-kit.md          docs/ui8-submission.md
 previews/*.png              (13 curated product screenshots)
 scripts/verify.mjs          scripts/smoke.mjs
 src/

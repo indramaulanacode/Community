@@ -145,7 +145,7 @@ smoke harness fails a route that opens a native dialog.
 <Toaster />                       // already mounted in App.jsx
 ```
 
-Toasts come from the store: `actions.notify('Community archived', 'success')`.
+Toasts come from the store: `actions.notify('Invitation sent to Ada', 'success')`.
 
 ## Charts.jsx
 

@@ -6,6 +6,8 @@ A production-shaped React dashboard for the people who run online communities: t
 
 **Demo mode, stated plainly:** there is no server, no database and no authentication. The `/signup` screen is a form with real validation that hands you back to the demo; it does not create an account. State persists to `localStorage`, and a reset control lives in Settings → Demo data.
 
+**Running the app?** [`docs/usage-guide.md`](docs/usage-guide.md) is the manual — every screen, the everyday workflows, keyboard shortcuts, URL filters, and where the data lives.
+
 ---
 
 ## Requirements
@@ -59,14 +61,14 @@ A clean run of the whole suite looks like this:
 | Analytics | `/analytics` | 12 computed metrics, growth, joins vs departures, engagement trend, community breakdown, content performance, channel activity. Range switcher (7/30/90 days/all) and CSV export. |
 | Communities | `/communities`, `/communities/:id` | Grid or table, favourites, per-community roster, channels, moderation queue, member management. |
 | Members | `/members`, `/members/:id` | Directory with role/status/community filters, bulk selection, invite flow, per-member profile with activity, roles and tasks. |
-| Events | `/events`, `/events/:id` | Month calendar, week strip, agenda, registration with capacity, attendee list, recurrence, detail page. |
+| Events | `/events`, `/events/:id` | Month calendar, week strip, agenda, registration with capacity, attendee list, detail page. |
 | Tasks | `/tasks` | Kanban with real HTML5 drag-and-drop plus a keyboard path for every move, list view with sortable columns, drawer editor, labels, priorities, overdue filter. |
 | Content | `/content`, `/content/:id` | Draft/scheduled/published pipeline, composer with scheduling, per-item metrics, detail page. |
 | Collections | `/collections`, `/collections/:id` | Curated libraries with add/remove items. |
 | Messages | `/messages`, `/messages/:id` | Channel list grouped by community, unread counts, thread view, composer that writes into the store and moves the engagement numbers. |
 | Notifications | `/notifications` | Tabs (all/unread/urgent), mark-read, deep links into the referenced record. |
 | Settings | `/settings`, `/settings/:section` | Profile, Workspace, Appearance, Notifications, Security, Demo data — all writing to the local store. |
-| Signup | `/signup` | Multi-step validation demo, no account creation. |
+| Signup | `/signup` | Join form: four required fields validated inline, live product preview, theme control. Writes the workspace name into the store and hands over to the dashboard — it creates no account. |
 
 Deep links are honoured everywhere a filter exists: `/members?status=invited`, `/tasks?filter=overdue`, `/tasks?task=t-05`, `/content?status=scheduled`, `/communities?view=grid`, `/notifications?tab=unread`, `/analytics?range=90d`, `/messages/:id`. Hand-edited values are validated against the control's option list, so an unknown parameter falls back to the default instead of rendering an empty screen.
 
@@ -96,6 +98,7 @@ scripts/
   verify.mjs            # logic assertions (Node)
   smoke.mjs             # real-browser route + interaction harness
 docs/
+  usage-guide.md        # how to use the product, screen by screen
   ui-kit.md             # primitive API and conventions
   ui8-submission.md     # listing copy, walkthrough, checklist
 ```
@@ -151,7 +154,7 @@ Nothing else in the tree knows where data comes from.
 ## Use cases
 
 - **Community manager, one workspace, many rooms.** The dashboard's attention queue (overdue tasks, unread notifications, pending invites, drafts) is the daily starting point; each row deep-links into the work.
-- **Programme lead running an event calendar.** Month/week/agenda views, capacity against registrations, recurrence, and a registration button that changes both the event and the analytics attendance rate.
+- **Programme lead running an event calendar.** Month/week/agenda views, capacity against registrations, and a registration button that changes both the event and the analytics attendance series.
 - **Moderation team working a queue.** Tasks board with drag-and-drop and a keyboard path, per-community escalation notes, member status changes with confirm-before-destructive dialogs.
 - **Content and newsletter pipeline.** Draft → scheduled → published with a composer, a scheduler, per-item performance, and collections that curate published work into libraries.
 - **Reporting to a sponsor or stakeholder.** Analytics over 7/30/90-day or all-time ranges, with a one-click CSV export built from the same computed figures on screen.
