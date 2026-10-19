@@ -72,6 +72,23 @@ A clean run of the whole suite looks like this:
 
 Deep links are honoured everywhere a filter exists: `/members?status=invited`, `/tasks?filter=overdue`, `/tasks?task=t-05`, `/content?status=scheduled`, `/communities?view=grid`, `/notifications?tab=unread`, `/analytics?range=90d`, `/messages/:id`. Hand-edited values are validated against the control's option list, so an unknown parameter falls back to the default instead of rendering an empty screen.
 
+## Previews
+
+`previews/` holds 86 PNGs captured from the running app — no mockups, nothing staged in an
+image editor. Every number, name and date in them is the seeded demo data as it renders today.
+
+| Folder | Contents |
+| --- | --- |
+| `previews/desktop/` | The 19 routes at 1440×900 (2× density), light theme. |
+| `previews/mobile/` | The same 19 routes at 390×844, light theme. |
+| `previews/dark/` | The same 19 routes at 1440×900, dark theme. |
+| `previews/dark-mobile/` | The same 19 routes at 390×844, dark theme. |
+| `previews/views/` | 10 alternate states worth showing buyers: table/agenda/list views, the overdue and draft filters, the 90-day range, the unread tab, a search and the new-event dialog. |
+
+Files are numbered in tour order (`01-dashboard`, `02-analytics`, … `19-signup`), so each folder
+reads as a walk-through and the four page sets line up name for name. A tablet set (900×700) and
+the remaining deep-link states are regenerable with the commands above.
+
 ## How it is built
 
 ```

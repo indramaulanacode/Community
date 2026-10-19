@@ -110,29 +110,39 @@ below is rendered in the smoke run at three breakpoints.
 All 9 subjects map to files that already exist in this repository, captured by
 `npm run smoke` against the running app — not mockups, not retouched.
 
-`previews/` holds the curated set shipped with the product. The complete 37-shot set per
-theme per breakpoint lives in `.shots/` and `.shots-dark/` (gitignored; regenerate with
-the commands below).
+`previews/` is the curated set shipped with the product — 86 files, all captured from the
+running app. Four page sets hold the same 19 routes numbered in tour order: `desktop/` and
+`mobile/` in light theme (1440×900 and 390×844), `dark/` and `dark-mobile/` in dark theme at
+the same sizes. `views/` adds 10 alternate states (table/agenda/list views, filters, the
+90-day range, the unread tab, a search, the new-event dialog). The complete 37-shot set per
+theme per breakpoint lives in `.shots/` and `.shots-dark/` (regenerate with the commands
+below).
 
 | # | Subject | Files |
 | --- | --- | --- |
-| 1 | Main dashboard and analytics | `previews/01-dashboard.png`, `previews/02-analytics.png` |
-| 2 | Community directory and detail | `previews/03-communities.png`, `previews/04-community-detail.png` |
-| 3 | Member management and profile | `previews/05-members.png`, `.shots/desktop/members-m-paul.png` |
-| 4 | Events and calendar | `previews/06-events-calendar.png`, `.shots/desktop/events-view-agenda.png` |
-| 5 | Task board | `previews/07-tasks-board.png`, `.shots/desktop/tasks-view-list.png` |
-| 6 | Content management | `previews/08-content.png`, `.shots/desktop/content-view-table-status-draft.png` |
-| 7 | Light and dark themes | `previews/09-appearance.png`, `previews/10-dashboard-dark.png`, `previews/11-community-detail-dark.png` |
-| 8 | Responsive mobile layouts | `previews/12-mobile-dashboard.png`, `previews/13-mobile-tasks.png`, `.shots/mobile/*` |
-| 9 | Reusable components and customisation | `.shots/desktop/settings-appearance.png`, `.shots/desktop/communities-view-table.png`, `.shots/desktop/members-status-invited-view-grid.png` |
+| 1 | Main dashboard and analytics | `desktop/01-dashboard.png`, `desktop/02-analytics.png`, `views/20-analytics-range-90d.png` |
+| 2 | Community directory and detail | `desktop/03-communities.png`, `desktop/04-community-detail.png`, `views/21-communities-table-view.png` |
+| 3 | Member management and profile | `desktop/05-members.png`, `desktop/06-member-detail.png`, `views/27-members-invited-grid-view.png` |
+| 4 | Events and calendar | `desktop/07-events.png`, `desktop/08-event-detail.png`, `views/22-events-agenda-view.png`, `views/23-events-new-event-dialog.png` |
+| 5 | Task board | `desktop/09-tasks.png`, `views/24-tasks-list-view.png`, `views/25-tasks-overdue-filter.png` |
+| 6 | Content management | `desktop/10-content.png`, `desktop/11-content-detail.png`, `views/26-content-table-draft-view.png` |
+| 7 | Light and dark themes | `desktop/18-settings-appearance.png`, `dark/01-dashboard.png`, `dark/18-settings-appearance.png`, `dark-mobile/01-dashboard.png` |
+| 8 | Responsive mobile layouts | `mobile/01-dashboard.png`, `mobile/09-tasks.png`, `dark-mobile/04-community-detail.png` — every route has both a light and a dark mobile counterpart |
+| 9 | Reusable components and customisation | `desktop/18-settings-appearance.png`, `desktop/17-settings-overview.png`, `desktop/12-collections.png`, `desktop/14-messages.png` |
+
+Every subject is answerable from `previews/` alone; the `.shots*` folders exist so a reviewer
+can regenerate the set rather than trust the PNGs.
 
 Capture commands (a local Chrome is the only extra requirement):
 
 ```bash
-npm run smoke -- --shots .shots                          # light, every route + interactions
+npm run smoke -- --shots .shots --theme light --routes-only
 npm run smoke -- --shots .shots-dark --theme dark --routes-only
 npm run build && npm run preview                         # then point CHROME at the preview
 ```
+
+Pass `--theme` explicitly. Without it the app follows the system preference, and headless
+Chrome reports dark, so a "light" capture silently comes out dark.
 
 `--routes-only` is what produces the deliverable set: it renders each route from a fresh
 profile, so the data is the pristine seed rather than whatever the interaction steps
@@ -166,7 +176,7 @@ Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
 index.html                  vite.config.js            package.json  package-lock.json
 README.md                   .gitignore                LICENSE (to be chosen by the author)
 docs/usage-guide.md       docs/ui-kit.md          docs/ui8-submission.md
-previews/*.png              (13 curated product screenshots)
+previews/                 (86 product screenshots: desktop, mobile, dark, dark-mobile, views)
 scripts/verify.mjs          scripts/smoke.mjs
 src/
   App.jsx  main.jsx  routes.js  index.css
@@ -224,12 +234,16 @@ Items 1–3 are blockers; 4–6 are quality signals; 7 is the author's own decis
 2. **Untrack build and dependency output.** `git ls-files` reports 6,256 files under
    `node_modules/` and 3 under `dist/` committed to the repository. `.gitignore` already
    lists them, but ignore rules do not apply to already-tracked paths:
-   `git rm -r --cached node_modules dist` then commit. Without this the download is
-   hundreds of megabytes of dependencies.
+   `git rm -r --cached node_modules dist .shots-dark` then commit. Without this the download is
+   hundreds of megabytes of dependencies. (`.shots-dark/` is in `.gitignore` but was committed
+   before the rule existed, so it needs the explicit `--cached` removal; `.shots/` never got in.)
 3. **Choose and add `LICENSE`.** `README.md` currently defers the template licence to the
    UI8 listing; the marketplace needs an explicit file before review.
-4. Re-shoot the hero images at the final resolution UI8 asks for
-   (`npm run smoke -- --shots .shots --routes-only`), and confirm `previews/` matches.
+4. **Keep `previews/` in step with the code.** The 86 files there were captured from this
+   build; re-run both sets after any UI change, and re-shoot at whatever resolution UI8
+   finally asks for:
+   `npm run smoke -- --shots .shots --theme light --routes-only` then
+   `npm run smoke -- --shots .shots-dark --theme dark --routes-only`.
 5. Run the full validation trio one last time on a clean install:
    `rm -rf node_modules && npm ci && npm run verify && npm run build && npm run smoke`.
 6. Remove development-only files from the package if UI8 wants a zip rather than a repo:

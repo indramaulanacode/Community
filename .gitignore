@@ -23,5 +23,6 @@ npm-debug.log*
 .env.*
 !.env.example
 
-# generated preview captures (npm run smoke -- --shots .shots)
+# generated smoke captures (npm run smoke -- --shots .shots --theme light|dark)
 .shots/
+.shots-dark/
