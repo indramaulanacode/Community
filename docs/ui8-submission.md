@@ -137,28 +137,30 @@ below is rendered in the smoke run at three breakpoints.
 
 ## Suggested screenshots
 
-All 9 subjects map to files that already exist in this repository, captured by
+All 10 subjects map to files that already exist in this repository, captured by
 `npm run smoke` against the running app — not mockups, not retouched.
 
-`previews/` is the curated set shipped with the product — 90 files, all captured from the
-running app. Four page sets hold the same 20 screens numbered in tour order (`00-home` …
-`19-signup`): `desktop/` and `mobile/` in light theme (1440×900 and 390×844), `dark/` and
-`dark-mobile/` in dark theme at the same sizes. `views/` adds 10 alternate states
-(table/agenda/list views, filters, the 90-day range, the unread tab, a search, the
-new-event dialog). The complete 38-shot set per theme per breakpoint lives in `.shots/`
-and `.shots-dark/` (regenerate with the commands below).
+`previews/` is the curated set shipped with the product — 100 files, all captured from the
+running app. Four page sets hold the same 22 screens numbered in tour order (`00-home` …
+`21-signup`, with `03-health` and `04-moderation` in the Community pulse group): `desktop/`
+and `mobile/` in light theme (1440×900 and 390×844), `dark/` and `dark-mobile/` in dark theme
+at the same sizes. `views/` adds 12 alternate states (the health board filtered to at-risk,
+the moderation drawer open on a report, table/agenda/list views, filters, the 90-day range,
+the unread tab, a search and the new-event dialog). The complete 47-shot set per theme per
+breakpoint lives in `.shots/` and `.shots-dark/` (regenerate with the commands below).
 
 | # | Subject | Files |
 | --- | --- | --- |
-| 1 | Main dashboard and analytics | `desktop/01-dashboard.png`, `desktop/02-analytics.png`, `views/20-analytics-range-90d.png` |
-| 2 | Community directory and detail | `desktop/03-communities.png`, `desktop/04-community-detail.png`, `views/21-communities-table-view.png` |
-| 3 | Member management and profile | `desktop/05-members.png`, `desktop/06-member-detail.png`, `views/27-members-invited-grid-view.png` |
-| 4 | Events and calendar | `desktop/07-events.png`, `desktop/08-event-detail.png`, `views/22-events-agenda-view.png`, `views/23-events-new-event-dialog.png` |
-| 5 | Task board | `desktop/09-tasks.png`, `views/24-tasks-list-view.png`, `views/25-tasks-overdue-filter.png` |
-| 6 | Content management | `desktop/10-content.png`, `desktop/11-content-detail.png`, `views/26-content-table-draft-view.png` |
-| 7 | Light and dark themes | `desktop/18-settings-appearance.png`, `dark/01-dashboard.png`, `dark/18-settings-appearance.png`, `dark-mobile/01-dashboard.png` |
-| 8 | Responsive mobile layouts | `mobile/01-dashboard.png`, `mobile/09-tasks.png`, `dark-mobile/04-community-detail.png` — every route has both a light and a dark mobile counterpart |
-| 9 | Reusable components and customisation | `desktop/18-settings-appearance.png`, `desktop/17-settings-overview.png`, `desktop/12-collections.png`, `desktop/14-messages.png` |
+| 1 | Main dashboard and analytics | `desktop/01-dashboard.png`, `desktop/02-analytics.png`, `views/22-analytics-range-90d.png` |
+| 2 | Community pulse — health board & moderation queue | `desktop/03-health.png`, `desktop/04-moderation.png`, `views/24-health-at-risk.png`, `views/25-moderation-drawer.png` |
+| 3 | Community directory and detail | `desktop/05-communities.png`, `desktop/06-community-detail.png`, `views/23-communities-table-view.png` |
+| 4 | Member management and profile | `desktop/07-members.png`, `desktop/08-member-detail.png`, `views/28-members-invited-grid-view.png` |
+| 5 | Events and calendar | `desktop/09-events.png`, `desktop/10-event-detail.png`, `views/26-events-agenda-view.png`, `views/27-events-new-event-dialog.png` |
+| 6 | Task board | `desktop/11-tasks.png`, `views/29-tasks-list-view.png`, `views/30-tasks-overdue-filter.png` |
+| 7 | Content management | `desktop/12-content.png`, `desktop/13-content-detail.png`, `views/31-content-table-draft-view.png` |
+| 8 | Light and dark themes | `desktop/20-settings-appearance.png`, `dark/01-dashboard.png`, `dark/03-health.png`, `dark/20-settings-appearance.png` |
+| 9 | Responsive mobile layouts | `mobile/01-dashboard.png`, `mobile/04-moderation.png`, `dark-mobile/06-community-detail.png` — every route has both a light and a dark mobile counterpart |
+| 10 | Reusable components and customisation | `desktop/20-settings-appearance.png`, `desktop/19-settings-overview.png`, `desktop/14-collections.png`, `desktop/16-messages.png` |
 
 Every subject is answerable from `previews/` alone; the `.shots*` folders exist so a reviewer
 can regenerate the set rather than trust the PNGs.
@@ -219,15 +221,15 @@ Community pulse beats are the point: a moderation decision that visibly moves a 
 
 ## Files the customer receives
 
-`npm run package` writes them into `ui8-upload/` (and `ui8-upload.zip`) — 147 files, 25.3 MB,
-assembled from the allowlist at the top of `scripts/package.mjs`. The directory is source, not a
-build: the customer runs `npm install && npm run dev`.
+`npm run package` writes them into `ui8-upload/` (and `ui8-upload.zip`) — 159 files, 28.2 MB
+(zip 26.3 MB), assembled from the allowlist at the top of `scripts/package.mjs`. The directory is
+source, not a build: the customer runs `npm install && npm run dev`.
 
 ```
 index.html                  vite.config.js            package.json  package-lock.json
 README.md                   .gitignore                LICENSE (picked up automatically once it exists)
 docs/usage-guide.md       docs/ui-kit.md
-previews/                 (90 product screenshots: desktop, mobile, dark, dark-mobile, views)
+previews/                 (100 product screenshots: desktop, mobile, dark, dark-mobile, views)
 scripts/verify.mjs          scripts/smoke.mjs         scripts/package.mjs
 src/
   App.jsx  main.jsx  routes.js  index.css
@@ -295,7 +297,7 @@ Items 1–3 are blockers; 4–6 are quality signals; 7 is the author's own decis
 3. **Choose and add `LICENSE`.** `README.md` currently defers the template licence to the UI8
    listing; the marketplace needs an explicit file before review. Put it at the repository root
    and `npm run package` ships it — the packager deliberately does not invent one.
-4. **Keep `previews/` in step with the code.** The 90 files there were captured from this
+4. **Keep `previews/` in step with the code.** The 100 files there were captured from this
    build; re-run both sets after any UI change, and re-shoot at whatever resolution UI8
    finally asks for:
    `npm run smoke -- --shots .shots --theme light --routes-only` then

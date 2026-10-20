@@ -78,20 +78,21 @@ Deep links are honoured everywhere a filter exists: `/members?status=invited`, `
 
 ## Previews
 
-`previews/` holds 90 PNGs captured from the running app — no mockups, nothing staged in an
+`previews/` holds 100 PNGs captured from the running app — no mockups, nothing staged in an
 image editor. Every number, name and date in them is the seeded demo data as it renders today.
 
 | Folder | Contents |
 | --- | --- |
-| `previews/desktop/` | The 20 screens at 1440×900 (2× density), light theme. |
-| `previews/mobile/` | The same 20 screens at 390×844, light theme. |
-| `previews/dark/` | The same 20 screens at 1440×900, dark theme. |
-| `previews/dark-mobile/` | The same 20 screens at 390×844, dark theme. |
-| `previews/views/` | 10 alternate states worth showing buyers: table/agenda/list views, the overdue and draft filters, the 90-day range, the unread tab, a search and the new-event dialog. |
+| `previews/desktop/` | The 22 screens at 1440×900 (2× density), light theme. |
+| `previews/mobile/` | The same 22 screens at 390×844, light theme. |
+| `previews/dark/` | The same 22 screens at 1440×900, dark theme. |
+| `previews/dark-mobile/` | The same 22 screens at 390×844, dark theme. |
+| `previews/views/` | 12 alternate states worth showing buyers: the health board filtered to at-risk, the moderation drawer open on a report, table/agenda/list views, the overdue and draft filters, the 90-day range, the unread tab, a search and the new-event dialog. |
 
-Files are numbered in tour order (`00-home`, `01-dashboard`, … `19-signup`), so each folder reads
-as a walk-through and the four page sets line up name for name. A tablet set (900×700) and the
-remaining deep-link states are regenerable with the commands above.
+Files are numbered in tour order (`00-home`, `01-dashboard`, `02-analytics`, `03-health`,
+`04-moderation`, … `21-signup`), so each folder reads as a walk-through and the four page sets
+line up name for name. A tablet set (900×700) and the remaining deep-link states are
+regenerable with the commands above.
 
 ## Upload package
 
@@ -105,7 +106,7 @@ created itself, and refuses to overwrite one without its marker.
 
 The package is source, not a build — the customer runs `npm install && npm run dev`. A `LICENSE`
 at the repository root is picked up automatically once it exists; add one before submitting if the
-marketplace requires it. `--no-previews` drops the 90 screenshots (57 files, 0.8 MB) for the case
+marketplace requires it. `--no-previews` drops the 100 screenshots (59 files, 0.9 MB) for the case
 where the listing images go up separately.
 
 ## How it is built
