@@ -259,6 +259,7 @@ const NOTIF_ROUTE = {
   member: (id) => `/members/${id}`,
   members: () => '/members?status=invited',
   content: (id) => `/content/${id}`,
+  report: (id) => `/moderation?report=${id}`,
   analytics: () => '/analytics',
 }
 

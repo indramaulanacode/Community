@@ -307,6 +307,114 @@ export function roleSplit(state) {
     .map((key) => ({ label: key[0].toUpperCase() + key.slice(1), value: counts.get(key) }))
 }
 
+/* ------------------------------------------------------------ member health -- */
+
+/**
+ * Member health is a transparent rubric, not a black box: a score starts at
+ * 100 and loses the weights below, each penalty also emitting the reason chip
+ * the UI shows. Nothing is stored — the board is recomputed from the member
+ * records on every read, so marking somebody inactive or letting an invite
+ * age moves them down the list immediately.
+ */
+export const HEALTH_BUCKETS = [
+  { key: 'thriving', label: 'Thriving', tone: 'success', min: 85 },
+  { key: 'steady', label: 'Steady', tone: 'info', min: 65 },
+  { key: 'watch', label: 'Watch', tone: 'warning', min: 40 },
+  { key: 'at-risk', label: 'At risk', tone: 'danger', min: 0 },
+]
+
+export function memberHealth(member, now = Date.now()) {
+  const reasons = []
+  const add = (weight, text, tone) => reasons.push({ weight, text, tone })
+
+  const daysQuiet = Math.max(0, Math.floor((now - new Date(member.lastActiveAt).getTime()) / DAY_MS))
+  const daysSinceJoined = Math.max(0, Math.floor((now - new Date(member.joinedAt).getTime()) / DAY_MS))
+
+  if (member.status === 'suspended') add(50, 'Account suspended', 'danger')
+  else if (member.status === 'invited') add(35, `Invite never accepted (${daysSinceJoined}d)`, 'warning')
+  else if (member.status === 'inactive') add(30, 'Marked inactive', 'warning')
+
+  // Silence only counts against people who could actually have been active;
+  // an unaccepted invite has no activity to be quiet about. For members the
+  // workspace already flagged, long silence is expected — it confirms the
+  // status chip at a discount instead of doubling the penalty.
+  if (member.status !== 'invited' && daysQuiet >= 30) {
+    add(member.status === 'active' ? 40 : 20, `Quiet for ${daysQuiet}d`, 'danger')
+  } else if (member.status === 'active') {
+    if (daysQuiet >= 14) add(25, `Quiet for ${daysQuiet}d`, 'danger')
+    else if (daysQuiet >= 7) add(15, `Quiet for ${daysQuiet}d`, 'warning')
+    else if (daysQuiet >= 3) add(5, `Quiet for ${daysQuiet}d`, 'neutral')
+  }
+
+  if (member.status !== 'invited' && member.communityIds.length === 0) {
+    add(25, 'Left every room', 'danger')
+  }
+
+  if (member.status === 'active' && daysSinceJoined <= 21 && member.contributions.posts <= 2) {
+    add(10, 'Newcomer barely posting', 'warning')
+  }
+
+  reasons.sort((a, b) => b.weight - a.weight)
+  const score = Math.max(0, 100 - sum(reasons, (r) => r.weight))
+  const bucket = HEALTH_BUCKETS.find((b) => score >= b.min)
+  return {
+    score,
+    risk: bucket.key,
+    daysQuiet,
+    reasons: reasons.map(({ text, tone }) => ({ text, tone })),
+  }
+}
+
+/** Every member with their score and reasons, worst first. */
+export function healthBoard(state, now = Date.now()) {
+  return state.members
+    .map((member) => ({ member, ...memberHealth(member, now) }))
+    .sort((a, b) => a.score - b.score || a.member.name.localeCompare(b.member.name))
+}
+
+export function healthSummary(state, now = Date.now()) {
+  const board = healthBoard(state, now)
+  const inBucket = (key) => board.filter((row) => row.risk === key).length
+  return {
+    total: board.length,
+    thriving: inBucket('thriving'),
+    steady: inBucket('steady'),
+    watch: inBucket('watch'),
+    atRisk: inBucket('at-risk'),
+    averageScore: board.length ? Math.round(sum(board, (row) => row.score) / board.length) : 0,
+    invitesPending: state.members.filter((m) => m.status === 'invited').length,
+  }
+}
+
+export function riskDistribution(state, now = Date.now()) {
+  const summary = healthSummary(state, now)
+  const byBucket = {
+    thriving: summary.thriving,
+    steady: summary.steady,
+    watch: summary.watch,
+    'at-risk': summary.atRisk,
+  }
+  return HEALTH_BUCKETS.map((bucket) => ({ label: bucket.label, value: byBucket[bucket.key] }))
+}
+
+/* ------------------------------------------------------------------ reports -- */
+
+/** The queue, oldest first — a report ages, it does not arrive. */
+export function reportsFor(state, communityId = null) {
+  return state.reports
+    .filter((r) => !communityId || r.communityId === communityId)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+}
+
+export function moderationCounts(state) {
+  const counts = { open: 0, reviewing: 0, resolved: 0, dismissed: 0, urgent: 0, total: state.reports.length }
+  for (const report of state.reports) {
+    counts[report.status] += 1
+    if (report.status === 'open' && report.urgent) counts.urgent += 1
+  }
+  return counts
+}
+
 /* --------------------------------------------------------------- dashboard ----- */
 
 export function unreadNotifications(state) {
@@ -360,6 +468,9 @@ export function dashboardSummary(state) {
     unreadNotifications: unreadNotifications(state).length,
     drafts: state.content.filter((c) => c.status === 'draft').length,
     scheduledContent: state.content.filter((c) => c.status === 'scheduled').length,
+    atRiskMembers: healthSummary(state).atRisk,
+    openReports: state.reports.filter((r) => r.status === 'open').length,
+    urgentReports: state.reports.filter((r) => r.status === 'open' && r.urgent).length,
   }
 }
 

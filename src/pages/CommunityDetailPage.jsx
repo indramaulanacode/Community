@@ -9,14 +9,18 @@ import {
   FileText,
   Hash,
   ListChecks,
+  MessageSquareWarning,
   MoreHorizontal,
   Pencil,
+  Play,
   Plus,
+  RotateCcw,
   Send,
   Star,
   Trash2,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react'
 import { Link, navigate } from '../lib/router.jsx'
 import {
@@ -33,11 +37,13 @@ import {
   CONTENT_STATUSES,
   MEMBER_ROLES,
   MEMBER_STATUSES,
+  REPORT_REASONS,
+  REPORT_STATUSES,
   TASK_PRIORITIES,
   TASK_STATUSES,
 } from '../data/seed.js'
 import { useApp } from '../store/AppStore.jsx'
-import { communityStats, lookupMember } from '../store/selectors.js'
+import { communityStats, lookupMember, memberHealth, reportsFor } from '../store/selectors.js'
 import { Button, IconButton } from '../components/ui/Button.jsx'
 import {
   Avatar,
@@ -74,6 +80,7 @@ const TABS = [
   { key: 'events', label: 'Events' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'content', label: 'Content' },
+  { key: 'moderation', label: 'Moderation' },
 ]
 
 const HUES = [212, 348, 168, 276, 32, 190, 8, 128]
@@ -92,6 +99,12 @@ const contentStatusTone = (key) =>
 
 const priorityMeta = (key) =>
   TASK_PRIORITIES.find((priority) => priority.key === key) || { label: cap(key), tone: 'neutral' }
+
+const reportReasonMeta = (key) =>
+  REPORT_REASONS.find((reason) => reason.key === key) || { label: cap(key), tone: 'neutral' }
+
+const reportStatusMeta = (key) =>
+  REPORT_STATUSES.find((status) => status.key === key) || { label: cap(key), tone: 'neutral' }
 
 const isUpcoming = (event) => new Date(event.endsAt).getTime() >= Date.now()
 
@@ -390,6 +403,13 @@ function InviteMemberDialog({ community, onClose }) {
 function OverviewTab({ community, stats }) {
   const { state } = useApp()
 
+  const atRiskCount = state.members.filter(
+    (m) => m.communityIds.includes(community.id) && memberHealth(m).risk === 'at-risk',
+  ).length
+  const openReportCount = state.reports.filter(
+    (r) => r.communityId === community.id && (r.status === 'open' || r.status === 'reviewing'),
+  ).length
+
   const topContent = [...stats.published]
     .sort((a, b) => b.metrics.views - a.metrics.views)
     .slice(0, 6)
@@ -531,7 +551,22 @@ function OverviewTab({ community, stats }) {
             <p className="mt-3 text-[11px] leading-relaxed text-content-2">
               {stats.engagementRate > 45
                 ? 'Healthy. Keep the critique queue capped so the same three voices do not carry every thread.'
-                : 'Below the level where threads answer themselves. A pinned prompt from the owner usually moves this inside a week.'}
+                : 'Below the level where threads answer themselves. A pinned prompt from the owner usually moves this inside a week.'}{' '}
+              The health model flags{' '}
+              <Link
+                to={`/health?community=${community.id}&risk=at-risk`}
+                className="font-medium text-brand-content underline-offset-2 hover:underline"
+              >
+                {atRiskCount} member{atRiskCount === 1 ? '' : 's'}
+              </Link>{' '}
+              in this roster ·{' '}
+              <Link
+                to={`/moderation?community=${community.id}&status=open`}
+                className="font-medium text-brand-content underline-offset-2 hover:underline"
+              >
+                {openReportCount} report{openReportCount === 1 ? '' : 's'}
+              </Link>{' '}
+              still waiting in the queue.
             </p>
           </CardBody>
         </Card>
@@ -1278,6 +1313,180 @@ function ContentTab({ community }) {
   )
 }
 
+/* ------------------------------------------------------------------ moderation -- */
+
+/**
+ * Compact per-community slice of the queue. The patches mirror what
+ * ModerationPage's actOnReport writes — same record shape, activity trail and
+ * setting-gated notification — kept local so the two pages stay independent
+ * chunks. Full triage (notes, escalation) lives at /moderation.
+ */
+function ModerationTab({ community }) {
+  const { state, actions, currentMember } = useApp()
+
+  const reports = reportsFor(state, community.id)
+  const pending = reports.filter((r) => r.status === 'open' || r.status === 'reviewing')
+  const closed = reports.filter((r) => r.status !== 'open' && r.status !== 'reviewing')
+
+  const run = (report, next) => {
+    const verbs = {
+      reviewing: 'started reviewing a report in',
+      resolved: 'resolved a report in',
+      dismissed: 'dismissed a report in',
+      open: 'reopened a report in',
+    }
+    const at = new Date().toISOString()
+    const isClosed = next === 'resolved' || next === 'dismissed'
+    actions.update('reports', report.id, {
+      status: next,
+      resolvedAt: isClosed ? at : null,
+      resolution: isClosed
+        ? next === 'resolved'
+          ? 'Handled from the community page.'
+          : 'Not a violation.'
+        : null,
+    })
+    actions.add('activity', {
+      id: uid('a'),
+      actorId: state.currentUserId,
+      actorName: currentMember?.name || 'A moderator',
+      verb: verbs[next],
+      targetKind: 'community',
+      targetId: community.id,
+      at,
+    })
+    if (state.prefs.notify.moderationQueue) {
+      actions.add('notifications', {
+        id: uid('n'),
+        kind: 'moderation',
+        title: `${reportReasonMeta(report.reason).label} ${reportStatusMeta(next).label.toLowerCase()}`,
+        body: `The ${report.kind} report in ${community.name} is now ${reportStatusMeta(next).label.toLowerCase()}.`,
+        target: { type: 'report', id: report.id },
+        at,
+        actorId: state.currentUserId,
+        read: false,
+      })
+    }
+    actions.notify(
+      `Report ${reportStatusMeta(next).label.toLowerCase()} — the queue keeps the full trail`,
+      next === 'resolved' ? 'success' : 'info',
+    )
+  }
+
+  const menuFor = (report) => {
+    const openish = report.status === 'open' || report.status === 'reviewing'
+    return openish
+      ? [
+          ...(report.status === 'open'
+            ? [{ label: 'Start reviewing', icon: Play, onSelect: () => run(report, 'reviewing') }]
+            : []),
+          { label: 'Resolve', icon: Check, onSelect: () => run(report, 'resolved') },
+          { label: 'Dismiss', icon: X, onSelect: () => run(report, 'dismissed') },
+          { divider: true },
+          {
+            label: 'Open in the full queue',
+            icon: MessageSquareWarning,
+            onSelect: () => navigate(`/moderation?report=${report.id}`),
+          },
+        ]
+      : [
+          { label: 'Reopen', icon: RotateCcw, onSelect: () => run(report, 'open') },
+          {
+            label: 'Open in the full queue',
+            icon: MessageSquareWarning,
+            onSelect: () => navigate(`/moderation?report=${report.id}`),
+          },
+        ]
+  }
+
+  const ordered = [
+    ...pending.filter((r) => r.urgent),
+    ...pending.filter((r) => !r.urgent),
+    ...closed,
+  ]
+
+  if (reports.length === 0) {
+    return (
+      <EmptyState
+        icon={MessageSquareWarning}
+        tone="success"
+        title="Nothing has been flagged in this room"
+        body="Members can report a message, a thread, a post or each other. Anything they file lands here and in the workspace queue at the same moment."
+        action={
+          <Button variant="secondary" size="sm" onClick={() => navigate('/moderation')}>
+            See the workspace queue
+          </Button>
+        }
+      />
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title={`${pending.length} awaiting action of ${reports.length} filed here`}
+        description="Reports members filed in this room, oldest first. Working them here updates the same records the full queue shows."
+        icon={MessageSquareWarning}
+        action={
+          <Button
+            variant="ghost"
+            size="sm"
+            iconRight={ChevronRight}
+            onClick={() => navigate(`/moderation?community=${community.id}`)}
+          >
+            Full queue
+          </Button>
+        }
+      />
+      <CardBody>
+        <ul className="flex flex-col gap-2">
+          {ordered.map((report) => {
+            const reporter = lookupMember(state, report.reporterId)
+            const reason = reportReasonMeta(report.reason)
+            const status = reportStatusMeta(report.status)
+            const openish = report.status === 'open' || report.status === 'reviewing'
+            return (
+              <ListRow key={report.id}>
+                <span className="min-w-0 flex-1">
+                  <Link
+                    to={`/moderation?report=${report.id}`}
+                    className="block max-w-full truncate text-[13px] font-medium text-content hover:text-brand"
+                  >
+                    <span className={cn(reason.tone === 'danger' && openish && 'text-danger-content')}>
+                      {reason.label}
+                    </span>
+                    {' · filed by '}
+                    {reporter?.name || 'a member'}
+                    {report.urgent && openish && (
+                      <Badge tone="danger" className="ml-1.5">
+                        Urgent
+                      </Badge>
+                    )}
+                  </Link>
+                  <span className="block max-w-full truncate text-[11px] text-content-3">
+                    {report.detail}
+                  </span>
+                </span>
+                <OutlineBadge tone="neutral">{cap(report.kind)}</OutlineBadge>
+                <span className="whitespace-nowrap text-[11px] text-content-3">
+                  {relativeTime(report.createdAt)}
+                </span>
+                <OutlineBadge tone={status.tone}>{status.label}</OutlineBadge>
+                <Menu
+                  items={menuFor(report)}
+                  label={`Actions for report ${report.id}`}
+                  leading={Dots}
+                  size="xs"
+                />
+              </ListRow>
+            )
+          })}
+        </ul>
+      </CardBody>
+    </Card>
+  )
+}
+
 /* ----------------------------------------------------------------------- page -- */
 
 function MissingCommunity({ id }) {
@@ -1323,6 +1532,9 @@ function CommunityView({ community, query }) {
     events: stats.events,
     tasks: state.tasks.filter((task) => task.communityId === community.id).length,
     content: stats.contentCount,
+    moderation: state.reports.filter(
+      (report) => report.communityId === community.id && (report.status === 'open' || report.status === 'reviewing'),
+    ).length,
   }
 
   const toggleFavourite = () => {
@@ -1409,6 +1621,7 @@ function CommunityView({ community, query }) {
       {tab === 'events' && <EventsTab community={community} stats={stats} />}
       {tab === 'tasks' && <TasksTab community={community} />}
       {tab === 'content' && <ContentTab community={community} />}
+      {tab === 'moderation' && <ModerationTab community={community} />}
 
       {editing && <EditCommunityDialog community={community} onClose={() => setEditing(false)} />}
       <ConfirmDialog

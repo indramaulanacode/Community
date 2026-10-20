@@ -1,3 +1,4 @@
+
 /**
  * Application state for the demo mode.
  *
@@ -27,6 +28,9 @@ const ENTITIES = [
   'content',
   'collections',
   'conversations',
+  'reports',
+  'notifications',
+  'activity',
 ]
 
 /** A stored demo older than this is re-seeded so the dates still look alive. */
@@ -41,12 +45,16 @@ function isStale(state) {
 }
 
 function initialState() {
+  const seed = loadSeed()
   const stored = loadState()
-  if (stored && !isStale(stored) && stored.version === 1) {
+  // The in-payload version gates the schema, not just the age: a snapshot
+  // written by an older seed (no reports, different quiet windows) must be
+  // replaced, or every new selector reads `undefined` off the stored state.
+  if (stored && !isStale(stored) && stored.version === seed.version) {
     // Prefs may have gained keys in code since the snapshot was written.
-    return { ...stored, prefs: { ...loadSeed().prefs, ...stored.prefs } }
+    return { ...stored, prefs: { ...seed.prefs, ...stored.prefs } }
   }
-  return loadSeed()
+  return seed
 }
 
 function reducer(state, action) {

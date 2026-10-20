@@ -9,9 +9,11 @@ import {
   CalendarDays,
   ChartLine,
   FolderOpen,
+  HeartPulse,
   LayoutDashboard,
   MessagesSquare,
   Settings,
+  ShieldAlert,
   SquareKanban,
   Users,
   UsersRound,
@@ -23,6 +25,13 @@ export const NAV_GROUPS = [
     items: [
       { key: 'dashboard', to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { key: 'analytics', to: '/analytics', label: 'Analytics', icon: ChartLine },
+    ],
+  },
+  {
+    label: 'Community pulse',
+    items: [
+      { key: 'health', to: '/health', label: 'Member health', icon: HeartPulse },
+      { key: 'moderation', to: '/moderation', label: 'Moderation', icon: ShieldAlert },
     ],
   },
   {
@@ -57,6 +66,9 @@ export const ROUTES = [
 
   { pattern: '/dashboard', key: 'dashboard', nav: 'dashboard', title: 'Dashboard' },
   { pattern: '/analytics', key: 'analytics', nav: 'analytics', title: 'Analytics' },
+
+  { pattern: '/health', key: 'health', nav: 'health', title: 'Member health' },
+  { pattern: '/moderation', key: 'moderation', nav: 'moderation', title: 'Moderation' },
 
   { pattern: '/communities', key: 'communities', nav: 'communities', title: 'Communities' },
   { pattern: '/communities/:id', key: 'community-detail', nav: 'communities', title: 'Community' },

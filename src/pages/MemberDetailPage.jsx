@@ -8,6 +8,7 @@ import {
   FileText,
   MessageSquare,
   MoreHorizontal,
+  HeartPulse,
   Pencil,
   Shield,
   Trash2,
@@ -16,11 +17,11 @@ import {
 } from 'lucide-react'
 import { navigate, Link } from '../lib/router.jsx'
 import { cn, DAY_MS, formatFull, relativeTime } from '../lib/utils.js'
-import { MEMBER_ROLES, MEMBER_STATUSES, TASK_STATUSES } from '../data/seed.js'
+import { MEMBER_ROLES, MEMBER_STATUSES, REPORT_REASONS, REPORT_STATUSES, TASK_STATUSES } from '../data/seed.js'
 import { useApp } from '../store/AppStore.jsx'
-import { lookupCommunity, lookupMember } from '../store/selectors.js'
+import { lookupCommunity, lookupMember, memberHealth } from '../store/selectors.js'
 import { Button } from '../components/ui/Button.jsx'
-import { Avatar, Badge, Metric, OutlineBadge, TableShell, Td, Th, Tr } from '../components/ui/Data.jsx'
+import { Avatar, Badge, Metric, OutlineBadge, Progress, TableShell, Td, Th, Tr } from '../components/ui/Data.jsx'
 import { Card, CardBody, CardHeader, MetaRow, PageHeader } from '../components/ui/Surface.jsx'
 import { Field, Input, Select, Textarea, isEmail, required, validate } from '../components/ui/Form.jsx'
 import { Tabs } from '../components/ui/Navigation.jsx'
@@ -34,6 +35,11 @@ const STATUS_TONE = Object.fromEntries(MEMBER_STATUSES.map((s) => [s.key, s.tone
 const CONTENT_TONE = { draft: 'neutral', scheduled: 'warning', published: 'success' }
 const DUE_TONE = { danger: 'text-danger', warning: 'text-warning', neutral: 'text-content-3' }
 const roleLabel = (key) => MEMBER_ROLES.find((r) => r.key === key)?.label ?? key
+const REPORT_REASON_LABEL = Object.fromEntries(REPORT_REASONS.map((r) => [r.key, r.label]))
+const REPORT_STATUS_LABEL = Object.fromEntries(REPORT_STATUSES.map((s) => [s.key, s.label]))
+const REPORT_STATUS_TONE = Object.fromEntries(REPORT_STATUSES.map((s) => [s.key, s.tone]))
+const RISK_LABEL = { thriving: 'Thriving', steady: 'Steady', watch: 'Watch', 'at-risk': 'At risk' }
+const RISK_TONE = { thriving: 'success', steady: 'info', watch: 'warning', 'at-risk': 'danger' }
 
 const ACCENT_HUE = {
   brand: 212, accent: 348, 'chart-1': 225, 'chart-2': 348, 'chart-3': 168,
@@ -217,6 +223,14 @@ export default function MemberDetailPage({ params, query }) {
     ? query.get('tab')
     : 'overview'
 
+  /* Health is derived, never stored — the same rubric the Member health
+     screen runs, so this card can never disagree with it. Reports where this
+     person is the target surface here too, linking straight to the queue. */
+  const health = memberHealth(member)
+  const reportsAgainst = state.reports.filter(
+    (r) => r.kind === 'member' && r.againstId === member.id,
+  )
+
   const setRole = (newRole) => {
     actions.update('members', member.id, { role: newRole })
     for (const community of communities) {
@@ -380,6 +394,76 @@ export default function MemberDetailPage({ params, query }) {
           </Card>
 
           <div className="flex flex-col gap-4">
+            <Card>
+              <CardHeader
+                title="Member health"
+                description="Derived on the spot from activity, status and rooms — never stored."
+                icon={HeartPulse}
+                action={<OutlineBadge tone={RISK_TONE[health.risk]}>{RISK_LABEL[health.risk]}</OutlineBadge>}
+              />
+              <CardBody>
+                <div className="flex items-end gap-3">
+                  <p className="text-3xl font-semibold tracking-tight text-content tnum">
+                    {health.score}
+                    <span className="ml-1 text-sm font-medium text-content-3">/ 100</span>
+                  </p>
+                  <p className="pb-1 text-[11px] text-content-3">quiet {health.daysQuiet}d</p>
+                </div>
+                <Progress
+                  value={health.score}
+                  tone={health.risk === 'at-risk' ? 'danger' : health.risk === 'watch' ? 'warning' : 'success'}
+                  className="mt-2"
+                  label={`Health score ${health.score} of 100`}
+                />
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {health.reasons.length === 0 ? (
+                    <Badge tone="success">No deductions — thriving</Badge>
+                  ) : (
+                    health.reasons.map((reason) => (
+                      <Badge key={reason.text} tone={reason.tone}>
+                        {reason.text}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+                <Link
+                  to="/health"
+                  className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-brand-content hover:underline"
+                >
+                  See how everyone scores <HeartPulse size={12} />
+                </Link>
+              </CardBody>
+            </Card>
+
+            {reportsAgainst.length > 0 && (
+              <Card>
+                <CardHeader
+                  title="Reported by members"
+                  description={`${reportsAgainst.length} flag${reportsAgainst.length === 1 ? '' : 's'} naming this person in the moderation queue`}
+                  icon={Shield}
+                />
+                <CardBody>
+                  <ul className="flex flex-col gap-1">
+                    {reportsAgainst.map((report) => (
+                      <li key={report.id}>
+                        <Link
+                          to={`/moderation?report=${report.id}`}
+                          className="flex items-center justify-between gap-3 rounded-control px-2 py-2 transition-colors hover:bg-surface-2"
+                        >
+                          <span className="min-w-0 truncate text-[13px] text-content">
+                            {REPORT_REASON_LABEL[report.reason] || report.reason}
+                          </span>
+                          <OutlineBadge tone={report.status === 'open' ? 'danger' : REPORT_STATUS_TONE[report.status] || 'neutral'}>
+                            {REPORT_STATUS_LABEL[report.status] || report.status}
+                          </OutlineBadge>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            )}
+
             <Card>
               <CardHeader title="About" description="Written by the member" icon={Pencil} />
               <CardBody>

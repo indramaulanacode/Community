@@ -27,14 +27,14 @@ account, and nothing leaves the browser.
 
 | Region | What it holds |
 | --- | --- |
-| Sidebar (left) | Eleven destinations in four groups — Overview, Manage, Connect, Account — plus your own card at the bottom. Collapsible to icons. The brand at the top links back to the home page. |
+| Sidebar (left) | Thirteen destinations in five groups — Overview, Community pulse, Manage, Connect, Account — plus your own card at the bottom. The Community pulse entries carry live badges (at-risk members, open reports), as does the notifications bell. Collapsible to icons. The brand at the top links back to the home page. |
 | Top bar | Breadcrumb, global search (⌘K), notifications bell, theme control, your avatar menu. |
 | Page header | The screen's title, what it counts, and the actions that belong to it. |
 | Toolbar | Search, filters, then the view switch (grid/table/board/list/month/agenda). |
 | Content | The work. Lists are paginated; empty results always offer a "Clear filters" action. |
 
-Open the app and you arrive on the **home page** (`#/`) — what the template is, all eleven
-screens with one line each, five use cases, and an explicit list of what works versus what is
+Open the app and you arrive on the **home page** (`#/`) — what the template is, all thirteen
+screens with one line each, seven use cases, and an explicit list of what works versus what is
 simulated. Its primary button takes you into the app on your start screen (Settings →
 Appearance → Start screen, Dashboard by default), and the sidebar brand brings you back out.
 It reads the same live store as everything else, so its counts change as you work.
@@ -44,6 +44,8 @@ each row is a button onto the exact filtered view where you can act:
 
 | Row | Opens |
 | --- | --- |
+| Moderation queue | `#/moderation?status=open` |
+| Member health | `#/health?risk=at-risk` |
 | Overdue tasks | `#/tasks?filter=overdue` |
 | Unread notifications | `#/notifications` |
 | Invites pending | `#/members?status=invited` |
@@ -89,6 +91,55 @@ title and location, filterable by status, role and community, sortable by recent
 Open a profile to see their activity, content and tasks in tabs. Changing a member's
 role there also updates the community's moderator list — the two views cannot disagree.
 Suspension keeps their history and blocks the actions a suspended member would take.
+
+### Watch member health
+
+Member health is a **derived risk board**, not a stored field. Every member is scored from
+the records you already have — how long since they were last active, whether their invite
+was ever accepted, whether they quietly left every room, whether a newcomer is posting.
+`selectors.js` computes `score = 100 − Σ deductions` on every read, then files each person
+into **Thriving (≥85) · Steady (65–84) · Watch (40–64) · At risk (<40)**.
+
+- The page opens worst-first, so the people slipping away are at the top with a **score bar
+  and named reason chips** — "Quiet for 34d", "Invite never accepted", "Left every room" —
+  never a bare colour. Risk is always spelled in text.
+- The metric strip (At risk / Watch / Average / Invites pending) and the **risk-distribution
+  chart** re-derive as you filter; clicking *At risk* or *Watch* filters the list to that
+  bucket (`?risk=at-risk`).
+- Filter by community, role or a search over name/handle, flip to **grid view**, then open a
+  row for the drawer with the full reason list and a link to the member's profile.
+- **Export** writes the board you currently have filtered as CSV with score, bucket and
+  reasons — an outreach list, not a guess.
+- Nothing here is a knob to tune: it is a rubric. A "How this is scored" card at the foot
+  prints every weight verbatim, so a reviewer can see exactly why someone landed where they
+  did.
+
+Marking a member inactive, letting an invite age, or suspending someone from the moderation
+queue moves them down this board immediately — the same source of truth.
+
+### Work the moderation queue
+
+The moderation queue is the reports members file against each other and their content.
+It is a real entity (`reports`), seeded with twelve items and worked oldest-first with an
+**SLA age** on every row (neutral under a day, warning at 1–3 days, danger past three).
+
+- **Status tabs** — Open / Reviewing / Resolved / Dismissed — carry live counts; an
+  **urgent banner** floats the reports that need a decision first.
+- Filter by community, kind (message, thread, content, member) or reason (spam, harassment,
+  privacy…). Every choice is a deep link: `?status=reviewing`, `?report=r-01` opens the
+  drawer, `?community=…&kind=thread`.
+- Open a report for the drawer: the reported target resolved to its real record (a thread
+  links to its channel, a member to their mini-profile, a message to its excerpt), the
+  reporter, the full detail, and resolution presets.
+- **Actions write a trail.** Resolving, dismissing, starting a review or reopening updates
+  the report, appends an activity entry, fires a notification and moves the sidebar badge —
+  in one click. **Escalate** suspends the member behind a confirm dialog, which drops their
+  health score on the spot: the two screens talk to each other.
+- **Export** downloads the queue you have filtered as CSV.
+
+The same reports appear as a **Moderation tab** on each community's detail page, scoped to
+that room, and the community's overview verdict now reads from real numbers — "N members at
+risk · M open reports" — instead of a hard-coded opinion.
 
 ### Work the task board
 
@@ -155,8 +206,9 @@ channels hold pinned items rather than a stream.
 
 Notifications has All / Unread / Urgent tabs and six types (events, tasks, members,
 content, moderation, reports), each with its own icon and colour. Per item: open the
-target, mark read, or copy a link to it. **Mark all read** is in the header, and the
-sidebar badge follows.
+target, mark read, or copy a link to it. A **reports** notification deep-links straight into
+the moderation queue with that report's drawer open (`/moderation?report=<id>`). **Mark all
+read** is in the header, and the sidebar badge follows.
 
 ### Make it yours
 
@@ -198,9 +250,10 @@ card's ⋯ menu, arrow to the column, Enter.
   "3 hours ago" and "next Thursday" true whenever you open the demo. It also means a
   two-week-old experiment gets reset.
 - **Export**: Settings → Demo data → *Export demo data (JSON)* downloads the whole
-  snapshot. Members exports the roster you currently have filtered; Analytics exports
-  five datasets for the selected range (member growth, daily engagement, community
-  breakdown, event attendance and content performance) into one CSV.
+  snapshot. Members exports the roster you currently have filtered; the health board exports
+  it with score, bucket and reasons; the moderation queue exports the reports in view;
+  Analytics exports five datasets for the selected range (member growth, daily engagement,
+  community breakdown, event attendance and content performance) into one CSV.
 - **Reset**: Settings → Demo data → *Reset demo data* (with confirmation). Or clear the
   key yourself.
 - **Storage disabled?** If `localStorage` is unavailable — private mode, blocked site
@@ -221,6 +274,8 @@ default rather than showing an empty screen.
 | --- | --- |
 | Communities | `?q=` `?category=` `?view=grid|table` |
 | Members | `?q=` `?status=` `?community=` `?view=table|grid` |
+| Member health | `?q=` `?risk=thriving|steady|watch|at-risk` `?community=` `?role=` `?view=table|grid` `?member=<id>` |
+| Moderation | `?q=` `?status=open|reviewing|resolved|dismissed` `?community=` `?kind=message|thread|content|member` `?reason=` `?report=<id>` (opens the drawer) |
 | Tasks | `?q=` `?view=board|list` `?task=<id>` (opens the drawer) `?filter=overdue` |
 | Content | `?q=` `?status=` `?community=` `?view=grid|table` `?new=1` (opens the composer) |
 | Events | `?q=` `?view=month|week|agenda` `?new=1` |
@@ -261,11 +316,11 @@ filter, badge and form option follows.
 
 | You run | Rename | Reach for |
 | --- | --- | --- |
-| A creator community | Categories → your niches; content types → video, newsletter, livestream | Content pipeline, Collections as paid tiers, member growth |
-| A startup's user group | Roles → team/advisory/beta | Tasks board, Events, activity feed |
-| A course or cohort | Content types → lesson, assignment, reading; statuses → open, in progress, archived | Collections per module, Events for sessions, member progress |
-| A professional network | Categories → practice areas; event kinds → mixer, webinar | Member directory with roles, Events, messages |
-| A membership body | Member statuses → pending, current, lapsed | Renewals as a task column, Events, CSV export |
+| A creator community | Categories → your niches; content types → video, newsletter, livestream | Content pipeline, Collections as paid tiers, member health against churn |
+| A startup's user group | Roles → team/advisory/beta | Tasks board, Events, moderation queue, activity feed |
+| A course or cohort | Content types → lesson, assignment, reading; statuses → open, in progress, archived | Collections per module, Events for sessions, member health for drop-off |
+| A professional network | Categories → practice areas; event kinds → mixer, webinar | Member directory with roles, moderation queue, messages |
+| A membership body | Member statuses → pending, current, lapsed | Health board as a lapsed-member list, CSV export for win-back |
 
 ---
 
@@ -289,6 +344,10 @@ filter, badge and form option follows.
 | --- | --- |
 | Member roles | owner · moderator · member |
 | Member statuses | active · invited · inactive · suspended |
+| Health risk buckets | thriving (≥85) · steady (65–84) · watch (40–64) · at-risk (<40) — derived, never stored |
+| Report kinds | message · thread · content · member |
+| Report reasons | spam · duplicate · harassment · inappropriate · off-topic · privacy |
+| Report statuses | open · reviewing · resolved · dismissed |
 | Task columns | todo · doing · review · done |
 | Task priorities | urgent · high · medium · low |
 | Content states | draft · scheduled · published |
@@ -301,5 +360,10 @@ filter, badge and form option follows.
 
 - Communities can be created but not deleted; reset is the undo.
 - Channel messages are backed by one seeded thread per community, stated in the UI.
+- The moderation queue is real (resolve / dismiss / review / escalate all persist and write
+  the trail), but the twelve reports are **seeded** — inbound reports would arrive from your
+  backend, they do not arrive on their own here.
+- Member health is a **rubric, not a model** — the weights are fixed and printed in the UI. It
+  is meant to be edited to your own retention signals, not trusted as a prediction.
 - No authentication, no multi-user state, no realtime — see Settings → Security.
 - JSON can be exported but not re-imported.

@@ -58,6 +58,8 @@ function routeFor(target) {
       return '/members'
     case 'content':
       return `/content/${target.id}`
+    case 'report':
+      return `/moderation?report=${target.id}`
     case 'analytics':
       return '/analytics'
     default:

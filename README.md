@@ -2,7 +2,7 @@
 
 A production-shaped React dashboard for the people who run online communities: the rooms they host, the members inside them, the events, the moderation and publishing work in flight, and the numbers that show whether any of it is working.
 
-18 screens over 20 routes, one persistent local data model, and no backend. Every figure on every screen is computed from the same records, so creating a community, moving a task, registering for an event or posting a message immediately changes the dashboard, the analytics page and the badges — which is the part a static template normally fakes.
+20 screens over 22 routes, one persistent local data model, and no backend. Every figure on every screen is computed from the same records, so creating a community, moving a task, registering for an event, resolving a report or posting a message immediately changes the dashboard, the analytics page, the health board and the badges — which is the part a static template normally fakes.
 
 **Demo mode, stated plainly:** there is no server, no database and no authentication. The `/signup` screen is a form with real validation that hands you back to the demo; it does not create an account. State persists to `localStorage`, and a reset control lives in Settings → Demo data.
 
@@ -30,14 +30,14 @@ npm run dev           # http://localhost:5173 — opens on the landing page at #
 | `npm run dev` | Vite dev server with HMR. |
 | `npm run build` | Production build into `dist/`, route-level code splitting. |
 | `npm run preview` | Serves the built `dist/` locally. |
-| `npm run verify` | 621 logic assertions over the data model, utilities and selectors. Pure Node, no browser. |
-| `npm run smoke` | Renders **every route in real headless Chrome**, then drives **20 workflow interactions**, failing on any console error, uncaught exception, native dialog, broken asset, horizontal overflow or ignored query parameter. |
+| `npm run verify` | 760 logic assertions over the data model, utilities and selectors — including the derived member-health rubric and the moderation queue. Pure Node, no browser. |
+| `npm run smoke` | Renders **every route in real headless Chrome**, then drives **21 workflow interactions**, failing on any console error, uncaught exception, native dialog, broken asset, horizontal overflow or ignored query parameter. |
 | `npm run package` | Assembles `ui8-upload/` and `ui8-upload.zip` from the allowlist in `scripts/package.mjs`, then verifies nothing development-only leaked in. |
 
 `npm run smoke` expects the dev server to be running (`npm run dev &`). Useful flags:
 
 ```bash
-node scripts/smoke.mjs --shots .shots --theme light    # capture 38 routes × desktop/tablet/mobile
+node scripts/smoke.mjs --shots .shots --theme light    # capture 47 routes × desktop/tablet/mobile
 node scripts/smoke.mjs --theme dark --shots .shots-dark
 node scripts/smoke.mjs --routes /analytics --routes-only
 node scripts/smoke.mjs --only /tasks             # one route and its deep links
@@ -49,18 +49,20 @@ CHROME=/path/to/chromium node scripts/smoke.mjs  # non-default browser location
 A clean run of the whole suite looks like this:
 
 ```
-621 checks passed — data model, utils and selectors are consistent.
-38 routes · 0 errors · 0 warnings
-20 interaction checks passed
+760 checks passed — data model, utils and selectors are consistent.
+47 routes · 0 errors · 0 warnings
+21 interaction checks passed
 ```
 
 ## Screens
 
 | Area | Routes | Notes |
 | --- | --- | --- |
-| Home | `/` | Public landing page — no sidebar, no top bar. Hero, live totals, a real chart, the 11-screen tour, five use cases and an explicit split between what works and what is simulated. Its primary button opens the screen chosen in Settings → Appearance → Start screen, and the sidebar logo comes back to it. |
+| Home | `/` | Public landing page — no sidebar, no top bar. Hero, live totals, a real chart, the 13-screen tour, seven use cases and an explicit split between what works and what is simulated. Its primary button opens the screen chosen in Settings → Appearance → Start screen, and the sidebar logo comes back to it. |
 | Dashboard | `/dashboard` | Metrics, 12-month growth/engagement toggle, attention queue, upcoming events with working registration, task queue, activity feed. |
 | Analytics | `/analytics` | 12 computed metrics, growth, joins vs departures, engagement trend, community breakdown, content performance, channel activity. Range switcher (7/30/90 days/all) and CSV export. |
+| Member health | `/health` | A derived risk board: every member scored from activity, status and rooms, worst first, each deduction named. Risk-distribution chart, at-risk/watch metrics, per-member drawer, grid/table views and a CSV export for outreach. |
+| Moderation | `/moderation` | The real report queue members file against messages, threads, content and each other. Status tabs with counts, SLA age on every row, urgent banner, drawer with resolve / dismiss / review / escalate, CSV export, plus a matching tab on each community. |
 | Communities | `/communities`, `/communities/:id` | Grid or table, favourites, per-community roster, channels, moderation queue, member management. |
 | Members | `/members`, `/members/:id` | Directory with role/status/community filters, bulk selection, invite flow, per-member profile with activity, roles and tasks. |
 | Events | `/events`, `/events/:id` | Month calendar, week strip, agenda, registration with capacity, attendee list, detail page. |
@@ -72,7 +74,7 @@ A clean run of the whole suite looks like this:
 | Settings | `/settings`, `/settings/:section` | Profile, Workspace, Appearance, Notifications, Security, Demo data — all writing to the local store. |
 | Signup | `/signup` | Join form: four required fields validated inline, live product preview, theme control. Writes the workspace name into the store and hands over to the dashboard — it creates no account. |
 
-Deep links are honoured everywhere a filter exists: `/members?status=invited`, `/tasks?filter=overdue`, `/tasks?task=t-05`, `/content?status=scheduled`, `/communities?view=grid`, `/notifications?tab=unread`, `/analytics?range=90d`, `/messages/:id`. Hand-edited values are validated against the control's option list, so an unknown parameter falls back to the default instead of rendering an empty screen.
+Deep links are honoured everywhere a filter exists: `/members?status=invited`, `/tasks?filter=overdue`, `/tasks?task=t-05`, `/content?status=scheduled`, `/communities?view=grid`, `/notifications?tab=unread`, `/analytics?range=90d`, `/health?risk=at-risk`, `/health?view=grid&community=…`, `/moderation?status=open`, `/moderation?report=r-01` (opens the drawer), `/messages/:id`. Hand-edited values are validated against the control's option list, so an unknown parameter falls back to the default instead of rendering an empty screen.
 
 ## Previews
 
@@ -143,15 +145,15 @@ previews/
 
 Three rules keep the codebase honest:
 
-1. **Nothing is stored that can be derived.** Totals, rates, breakdowns, streaks and per-community stats are computed in `selectors.js` from the records themselves. A mutation cannot desynchronise a chart.
+1. **Nothing is stored that can be derived.** Totals, rates, breakdowns, streaks and per-community stats are computed in `selectors.js` from the records themselves. So is member health: a score and risk bucket derived live from each person's activity, status and rooms, with every deduction spelled out. A mutation cannot desynchronise a chart — and suspending a member in the moderation queue visibly drops their health score, because both read the same record.
 2. **One route table.** `routes.js` drives the sidebar, the breadcrumbs, the active-nav highlight and the code-split page map, so a screen cannot appear in one place and not another.
 3. **Charts take real records.** `LineChart`/`BarChart`/`DonutChart` receive the same objects the rest of the page uses, with a `key` per series — no parallel array of numbers to keep in step.
 
 ### Data model
 
-`members (51) · communities (8) · events (25) · tasks (31) · content (28) · collections (6) · conversations (6, 35 messages) · notifications (14) · activity (20) · analytics {12 monthly, 59 daily}`
+`members (51) · communities (8) · events (25) · tasks (31) · content (28) · collections (6) · conversations (6, 35 messages) · notifications (14) · activity (20) · reports (12) · analytics {12 monthly, 59 daily}`
 
-Relationships are by id: a community has `memberIds` and an `ownerId`; a member has `communityIds`; tasks, content and events point at a `communityId`; collections hold `itemIds`; conversations hold messages with `authorId`. Every reference is asserted to resolve by `npm run verify`, and the seeded history is generated relative to today so the demo never shows a stale date.
+Relationships are by id: a community has `memberIds` and an `ownerId`; a member has `communityIds`; tasks, content, events and reports point at a `communityId`; collections hold `itemIds`; conversations hold messages with `authorId`; a report names a `reporterId` and an `againstId` (a member, message, thread or content item, by kind). Every reference is asserted to resolve by `npm run verify`, and the seeded history is generated relative to today so the demo never shows a stale date.
 
 The store persists to `localStorage` under `communities.v1`. Seeds older than 14 days are rebuilt, which is what keeps "3 hours ago" and "next Tuesday" true months later. To start over: **Settings → Demo data → Reset demo data**, or clear the key.
 
@@ -193,7 +195,8 @@ Nothing else in the tree knows where data comes from.
 
 - **Community manager, one workspace, many rooms.** The dashboard's attention queue (overdue tasks, unread notifications, pending invites, drafts) is the daily starting point; each row deep-links into the work.
 - **Programme lead running an event calendar.** Month/week/agenda views, capacity against registrations, and a registration button that changes both the event and the analytics attendance series.
-- **Moderation team working a queue.** Tasks board with drag-and-drop and a keyboard path, per-community escalation notes, member status changes with confirm-before-destructive dialogs.
+- **Moderation team working a real queue.** `/moderation` is the report queue members file against messages, threads, content and each other: oldest-first with an SLA age on every row, urgent floated to the top, and resolve / dismiss / review / escalate actions that write activity, fire a notification and move the sidebar badge. The same reports surface as a tab on each community, and escalating a repeat offender to suspended drops their health score on the spot.
+- **Community manager catching churn early.** `/health` ranks the whole roster from derived signals — how long since someone posted, invites that never landed, rooms they quietly left — each one named, so outreach is a ranked list rather than a guess, exportable to CSV.
 - **Content and newsletter pipeline.** Draft → scheduled → published with a composer, a scheduler, per-item performance, and collections that curate published work into libraries.
 - **Reporting to a sponsor or stakeholder.** Analytics over 7/30/90-day or all-time ranges, with a one-click CSV export built from the same computed figures on screen.
 

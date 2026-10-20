@@ -192,6 +192,83 @@ function routeList() {
       `,
     },
     {
+      pattern: '/moderation?status=reviewing',
+      path: '/moderation?status=reviewing',
+      expect: `
+        const tab = document.querySelector('[role="tab"][aria-selected="true"]');
+        tab && /reviewing/i.test(tab.textContent)
+          ? 'reviewing tab selected'
+          : 'FAIL selected tab: ' + (tab ? tab.textContent.trim() : 'none'),
+      `,
+    },
+    {
+      pattern: '/health?risk=at-risk',
+      path: '/health?risk=at-risk',
+      expect: `
+        const sel = [...document.querySelectorAll('select')].find(s => [...s.options].some(o => o.value === 'at-risk'));
+        const allRisk = !document.querySelector('table') || /At risk/.test(document.querySelector('table').innerText);
+        sel && sel.value === 'at-risk' && allRisk
+          ? 'risk=at-risk filter applied'
+          : 'FAIL risk=' + (sel ? sel.value : 'no select') + ' tableAllRisk=' + allRisk,
+      `,
+    },
+    {
+      pattern: `/health?community=${seed.communities[0].id}&view=grid`,
+      path: `/health?community=${seed.communities[0].id}&view=grid`,
+      expect: `
+        const sel = [...document.querySelectorAll('select')].find(s => [...s.options].some(o => o.value === ${JSON.stringify(seed.communities[0].id)}));
+        const shownAsTable = Boolean(document.querySelector('table'));
+        sel && sel.value === ${JSON.stringify(seed.communities[0].id)} && !shownAsTable
+          ? 'community filter applied, grid view active'
+          : 'FAIL community=' + (sel ? sel.value : 'no select') + ' tableShown=' + shownAsTable,
+      `,
+    },
+    {
+      pattern: `/health?q=${seed.members[2].handle}`,
+      path: `/health?q=${seed.members[2].handle}`,
+      expect: `
+        const box = document.querySelector('input[type="search"], input[placeholder*="Search" i]');
+        box && box.value === ${JSON.stringify(seed.members[2].handle)}
+          ? 'search prefilled from URL'
+          : 'FAIL ?q not applied (value=' + (box ? JSON.stringify(box.value) : 'no input') + ')',
+      `,
+    },
+    {
+      pattern: '/moderation?report=r-01',
+      path: '/moderation?report=r-01',
+      expect: `
+        const drawer = document.querySelector('[role="dialog"]');
+        const snippet = ${JSON.stringify(seed.reports.find((r) => r.id === 'r-01').detail.slice(0, 24))};
+        drawer && drawer.innerText.includes(snippet)
+          ? 'drawer opened for r-01'
+          : 'FAIL drawer not opened for r-01',
+      `,
+    },
+    {
+      pattern: `/moderation?community=${seed.reports.find((r) => r.kind === 'thread').communityId}&kind=thread`,
+      path: `/moderation?community=${seed.reports.find((r) => r.kind === 'thread').communityId}&kind=thread`,
+      expect: `
+        const cid = ${JSON.stringify(seed.reports.find((r) => r.kind === 'thread').communityId)};
+        const selects = [...document.querySelectorAll('select')];
+        const cs = selects.find(s => [...s.options].some(o => o.value === cid));
+        const ks = selects.find(s => [...s.options].some(o => o.value === 'thread'));
+        cs && cs.value === cid && ks && ks.value === 'thread'
+          ? 'community + kind filters applied'
+          : 'FAIL community=' + (cs ? cs.value : 'none') + ' kind=' + (ks ? ks.value : 'none'),
+      `,
+    },
+    {
+      pattern: `/communities/${seed.communities[1].id}?tab=moderation`,
+      path: `/communities/${seed.communities[1].id}?tab=moderation`,
+      expect: `
+        const tab = document.querySelector('[role="tab"][aria-selected="true"]');
+        const hasRows = /awaiting action|of \\d+ filed/.test(document.body.innerText);
+        tab && /moderation/i.test(tab.textContent) && hasRows
+          ? 'moderation tab selected, reports listed'
+          : 'FAIL tab=' + (tab ? tab.textContent.trim() : 'none') + ' rows=' + hasRows,
+      `,
+    },
+    {
       pattern: '/collections?q=design',
       path: '/collections?q=design',
       expect: `
@@ -975,6 +1052,39 @@ async function main() {
     if (b.going === a.going) return `FAIL store unchanged for ${a.id}`
     if (b.count !== a.count + (a.going ? -1 : 1)) return `FAIL attendee count ${a.count} -> ${b.count}`
     return `${a.label} → ${b.going ? 'registered' : 'cancelled'}, ${a.count}→${b.count} attendees · ${b.toast.slice(0, 60)}`
+  })
+
+  // The moderation queue has to leave a real trail, not just change a badge.
+  await step('resolving a report writes the full trail', async () => {
+    await goto('/moderation?report=r-01')
+    await sleep(1700)
+    const before = await evaluate(`
+      const raw = JSON.parse(localStorage.getItem('communities.v1') || '{}');
+      const rep = (raw.reports || []).find(r => r.id === 'r-01');
+      return JSON.stringify({ status: rep && rep.status, acts: (raw.activity || []).length });
+    `)
+    const b = JSON.parse(before)
+    if (b.status !== 'open') return `FAIL r-01 is already ${b.status} before the click`
+    const clicked = await evaluate(`
+      const drawer = document.querySelector('[role="dialog"]');
+      if (!drawer) return 'FAIL deep link did not open the report';
+      const btn = [...drawer.querySelectorAll('button')].find(x => /^Resolve$/.test(x.textContent.trim()));
+      if (!btn) return 'FAIL no Resolve button in drawer';
+      btn.click();
+      return 'clicked Resolve';
+    `)
+    if (clicked !== 'clicked Resolve') return clicked
+    await sleep(900)
+    return evaluate(`
+      const raw = JSON.parse(localStorage.getItem('communities.v1') || '{}');
+      const rep = (raw.reports || []).find(r => r.id === 'r-01');
+      const acts = (raw.activity || []).length;
+      const note = (raw.notifications || []).some(n => n.kind === 'moderation' && n.target?.id === 'r-01');
+      const gone = document.querySelector('[role="dialog"]') ? 'FAIL drawer still open' : 'drawer closed';
+      return rep.status === 'resolved' && rep.resolvedAt && rep.resolution && acts > ${b.acts} && note
+        ? 'resolved ' + rep.resolution.slice(0, 28) + ' · activity ${b.acts}->' + acts + ' · notification added · ' + gone
+        : 'FAIL status=' + rep.status + ' resolution=' + JSON.stringify(rep.resolution) + ' acts=' + acts + ' notif=' + note + ' ' + gone;
+    `)
   })
 
   /* ---------------------------------------------------------- screenshots -- */

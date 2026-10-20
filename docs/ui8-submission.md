@@ -8,12 +8,17 @@ commands that prove it. Nothing here is a planned feature.
 ## Value proposition
 
 **Most community dashboards on marketplaces are twelve screens of the same KPI card.
-Communities is one working product: a single data model that a member, an event, a task
-and a post all belong to, so every screen changes when you change something.**
+Communities is one working product: a single data model that a member, an event, a task, a
+post and a moderation report all belong to, so every screen changes when you change
+something — and it ships the two views a community manager actually works, not a generic
+admin panel with a community label on it.**
 
 Add a member on the directory and the dashboard total, the community detail roster, the
-analytics growth series, the notification feed and the CSV export all move. That
-consistency is what a buyer means by "it doesn't feel like a mockup", and it is the
+analytics growth series, the notification feed and the CSV export all move. Resolve a report
+in the moderation queue and the sidebar badge, the dashboard's attention card, that
+community's overview and the reporter's own health score all move with it. That consistency —
+and a member-health board and a report queue that are the point of the product rather than an
+afterthought — is what a buyer means by "it doesn't feel like a mockup", and it is the
 difference between a template you demo and a template you ship.
 
 It is also deliberately honest about being a frontend. There is no fake login, no
@@ -25,11 +30,13 @@ for a real API.
 
 Communities is a React 19 + Tailwind v4 dashboard for running many communities at once:
 8 seeded communities, 51 members, 25 events, 31 tasks, 28 pieces of content, 6
-collections, 6 conversations and 14 notifications, all cross-linked. 20 routes across 18
-page modules — a public landing page that presents the product, directory and detail views,
-a kanban board with drag and drop, a month calendar with registration, a content workflow
-from draft to scheduled to published, threaded messages, and a settings area that actually
-writes preferences. Charts are SVG drawn from the live records. Light and dark themes are
+collections, 6 conversations, 14 notifications and a 12-item moderation report queue, all
+cross-linked. 22 routes across 20 page modules — a public landing page that presents the
+product, a **derived member-health board** and a **working moderation queue** built for the
+person who runs the room (not another KPI card), directory and detail views, a kanban board
+with drag and drop, a month calendar with registration, a content workflow from draft to
+scheduled to published, threaded messages, and a settings area that actually writes
+preferences. Charts are SVG drawn from the live records. Light and dark themes are
 token-driven and persist across a reload. Built with four runtime dependencies and no UI
 library.
 
@@ -37,9 +44,20 @@ library.
 
 Implemented and covered by the automated checks:
 
+- **Built for running a community, not a generic admin panel.** Two screens exist for the
+  person who works the room. **Member health** (`/health`) scores every member from their
+  own activity, status and rooms — `100 − Σ deductions`, bucketed Thriving/Steady/Watch/At
+  risk — and spells out each reason ("Quiet for 34d", "Invite never accepted", "Left every
+  room"), so the board is a ranked outreach list, not a black box. **Moderation**
+  (`/moderation`) is a real report queue: seeded reports filed against messages, threads,
+  content and each other, worked oldest-first with an SLA age, resolve / dismiss / review /
+  escalate actions that write an activity entry, a notification and a badge, plus a matching
+  tab on every community. Both are exercised by the smoke run and the logic suite.
 - **Derived, not stored.** `src/store/selectors.js` computes every number the UI shows —
-  member growth, engagement totals, community stats, breakdowns. Nothing in state is a
-  duplicate of something that can be calculated.
+  member growth, engagement totals, community stats, breakdowns, and the whole health board.
+  Nothing in state is a duplicate of something that can be calculated. Escalate a report to a
+  suspension and that member's health score drops on the next render, because both screens
+  read the same record.
 - **Real CRUD with real consequences.** Create a community and it appears in every
   filter, dropdown, chart and breadcrumb that references communities. Delete flows go
   through `ConfirmDialog` and cancel without data loss (asserted in the smoke run).
@@ -61,7 +79,8 @@ Implemented and covered by the automated checks:
   survive a reload.
 - **Search across records.** ⌘K searches communities, members, events, tasks, content and
   collections and routes to the right detail page.
-- **CSV export** of the member directory and analytics tables, with spreadsheet-safe cells
+- **CSV export** of the member directory, the health board (with score, bucket and named
+  reasons), the moderation queue and the analytics tables, with spreadsheet-safe cells
   (a record name starting with `=` cannot become a formula).
 - **Accessibility work**: visible focus rings, roving focus in menus and tabs, `aria`
   state on toggles, labels on every icon button, `prefers-reduced-motion` respected.
@@ -73,30 +92,35 @@ vocabulary instead of rebuilding the screens.
 
 | Use case | Where it is already demonstrated |
 | --- | --- |
-| Creator communities | Content library with draft → scheduled → published, member growth, Collections as paid/resource libraries |
-| Startup communities | Tasks board with assignees and priorities, workspace settings, activity feed |
-| Educational communities | Events calendar with registration and capacity, member roles (owner/moderator/member), resources in collections |
-| Professional networks | Member directory with roles, statuses and profiles, channels on the community detail page, messages |
-| Membership organizations | Member statuses (active/invited/inactive/suspended), community ownership, notifications and digest preferences |
+| Creator communities | Content library with draft → scheduled → published, member health to catch subscribers going quiet, Collections as paid/resource libraries |
+| Startup communities | Tasks board with assignees and priorities, moderation queue for community conduct, workspace settings, activity feed |
+| Educational communities | Events calendar with registration and capacity, health board as a drop-off watchlist, member roles (owner/moderator/member), resources in collections |
+| Professional networks | Member directory with roles, statuses and profiles, moderation queue for reported posts, channels on the community detail page, messages |
+| Membership organizations | Member statuses (active/invited/inactive/suspended) feeding the health board, community ownership, notifications and digest preferences |
 
 The landing page frames the same coverage by the job rather than the community type — run a
-network, put on events, work a moderation queue, ship a content calendar, report on any of it
-— because that is the question a buyer actually asks. Both framings point at real screens.
+network, put on events, work a moderation queue, follow moderation decisions through to a
+task, catch the members about to leave, ship a content calendar, report on any of it —
+because that is the question a buyer actually asks. Every one of those jobs points at a real
+screen, and the two moderation/health jobs now drive their own views rather than the general
+task board.
 
 ## Route and feature inventory
 
-20 patterns → 18 page modules (Messages and Settings each serve two patterns). Every row
+22 patterns → 20 page modules (Messages and Settings each serve two patterns). Every row
 below is rendered in the smoke run at three breakpoints.
 
 | Route | Page | What works |
 | --- | --- | --- |
-| `/` | HomePage | Public landing page, no shell: hero with live counts, real growth chart, the eleven screens grouped as cards, five use cases, and an explicit split between what is implemented and what is simulated. Theme control, and its primary button opens the configured start screen. An empty hash resolves here. |
+| `/` | HomePage | Public landing page, no shell: hero with live counts, real growth chart, the thirteen screens grouped as cards, seven use cases, and an explicit split between what is implemented and what is simulated. Theme control, and its primary button opens the configured start screen. An empty hash resolves here. |
 | `/dashboard` | DashboardPage | Metric row, growth and engagement charts, my tasks, upcoming events, activity feed |
 | `/analytics` | AnalyticsPage | Range switch (`?range=7d/30d/90d`), KPI grid with deltas, line/bar/ranked/donut charts, community leaderboard |
+| `/health` | HealthPage | Derived member-health board: at-risk/watch metrics, risk-distribution chart, filters by risk/community/role with search, table + grid views, a per-member drawer with the full reason list and a link to their profile, "how this is scored" rubric card, CSV export (`?risk=`, `?view=grid`, `?member=<id>`) |
+| `/moderation` | ModerationPage | Report queue: status tabs with counts, urgent banner, filters by community/kind/reason with search, SLA age per row, drawer with resolve / dismiss / review / escalate / reopen that writes activity + notification + badge, CSV export (`?status=`, `?report=<id>` opens the drawer, `?kind=thread`) |
 | `/communities` | CommunitiesPage | Grid + table views (the choice persists as a preference), search, category filter, four sorts (members, engagement, needs attention, recently created), create dialog with validation, favourite toggle, "New event here", copy shareable link |
-| `/communities/:id` | CommunityDetailPage | 6 tabs (overview, members, channels, events, tasks, content), member roster with role changes, join/leave with confirmation, edit, favourite |
+| `/communities/:id` | CommunityDetailPage | 7 tabs (overview, members, channels, moderation, events, tasks, content), member roster with role changes, join/leave with confirmation, edit, favourite; the moderation tab shows this room's reports with the same actions, and the overview verdict now reads "N members at risk · M open reports" from real numbers |
 | `/members` | MembersPage | Table + grid, search, status and community filters, sort, bulk selection with bulk status change, invite dialog, CSV export |
-| `/members/:id` | MemberDetailPage | Profile, 4 tabs (overview, activity, content, tasks), editable fields, role change that syncs the community's moderator list, suspend, remove from workspace (which clears every membership first) |
+| `/members/:id` | MemberDetailPage | Profile, 4 tabs (overview, activity, content, tasks), a derived health card (score, bucket, named reasons) and a "reported by members" card linking into the queue on the overview, editable fields, role change that syncs the community's moderator list, suspend, remove from workspace (which clears every membership first) |
 | `/events` | EventsPage | Month/week/agenda calendar, search, community filter, create event form, RSVP state |
 | `/events/:id` | EventsPage detail | Attendee list with capacity, register/cancel, description, share link, edit |
 | `/tasks` | TasksPage | Kanban with drag and drop, list view, status/priority/community/assignee filters (`?status=`, `?view=`), task drawer editing title, description, status, priority, assignee, due date, community and labels, create, complete, delete |
@@ -160,26 +184,38 @@ mutated.
 
 ## Suggested demo walkthrough
 
-Ninety seconds, one thread of cause and effect. Each beat is a real interaction.
+Ninety seconds, one thread of cause and effect. Each beat is a real interaction — and the
+Community pulse beats are the point: a moderation decision that visibly moves a health score.
 
 1. **Landing page → Dashboard** (0:00) — the app opens on `#/`: live counts, a real chart,
-   the eleven screens named and linked. Click "Explore the live demo". On the dashboard,
-   point at the last month of the growth chart: it is *this* month, counted live.
-2. **Create** (0:10) — Communities → New community → submit empty to show the inline
+   the thirteen screens named and linked. Click "Explore the live demo". On the dashboard,
+   point at the "Needs your attention" card: the first two rows are **Moderation queue** and
+   **Member health**, each a button onto the exact filtered view.
+2. **Create** (0:08) — Communities → New community → submit empty to show the inline
    error → fill it in → create. The card appears, the directory count and every
    community filter in the product gain the new option.
-3. **Deep link** (0:25) — copy the community's link, paste it in a new tab, land on the
+3. **Deep link** (0:18) — copy the community's link, paste it in a new tab, land on the
    same page. Hash routing, no server config.
-4. **Detail tabs** (0:35) — Overview → Members → promote a member to moderator → the
-   roster badge and the community's moderator list both change.
-5. **Tasks** (0:50) — drag a card from To do to In progress, open the drawer, raise the
+4. **Community pulse — the moderation queue** (0:26) — open `/moderation`: reports members
+   filed against threads, messages, content and each other, oldest-first with an SLA age and
+   two urgent at the top. Open a report and **escalate** it — confirm the dialog, and the
+   reporter's target is suspended, an activity entry and a notification are written, and the
+   sidebar badge moves in one click.
+5. **Community pulse — the health board** (0:40) — jump to `/health?risk=at-risk`: the same
+   suspended member now sits at the bottom of the board, their score dropped and the reason
+   spelled out ("Account suspended"). The two screens read one record — nothing was
+   double-booked. Point at the rubric card to show every weight is named, not invented.
+6. **Detail tabs** (0:52) — a community's own Moderation tab shows its reports scoped to the
+   room; Overview → Members → promote a member to moderator → the roster badge and the
+   community's moderator list both change.
+7. **Tasks** (1:04) — drag a card from To do to In progress, open the drawer, raise the
    priority and add a label, then delete another card to show the confirmation and the
    cancel path.
-6. **Events** (1:05) — month grid → open an event → register → the attendee count moves
+8. **Events** (1:16) — month grid → open an event → register → the attendee count moves
    and Analytics' attendance series re-derives from it.
-7. **Analytics** (1:20) — switch 7d/30d/90d; every chart and delta re-derives.
-8. **Theme + persistence** (1:30) — Appearance → Dark, reload the page, still dark.
-9. **Mobile** (1:40) — resize to 390 px, use the drawer nav and the task board.
+9. **Analytics** (1:26) — switch 7d/30d/90d; every chart and delta re-derives.
+10. **Theme + persistence** (1:34) — Appearance → Dark, reload the page, still dark.
+11. **Mobile** (1:42) — resize to 390 px, use the drawer nav and the task board.
 
 ## Files the customer receives
 
@@ -198,7 +234,7 @@ src/
   components/ui/            8 primitive modules (Button, Form, Surface, Data,
                             Navigation, Overlay, Feedback, Charts)
   components/layout/        Sidebar.jsx  TopBar.jsx
-  pages/                    18 page modules + content/ events/ messages/ helpers
+  pages/                    20 page modules + content/ events/ messages/ helpers
   store/                    AppStore.jsx (reducer + persistence)  selectors.js
   data/seed.js              the whole demo dataset
   lib/                      router.jsx  storage.js  utils.js
@@ -208,7 +244,7 @@ This file (`docs/ui8-submission.md`), `promt.md`, `.qoder/`, `.shots*/`, `node_m
 and `.git/` are on the packager's denylist and stay with the author; the build fails if any of
 them turns up in the output.
 
-46 files in `src`, ~18.4k lines. Three runtime dependencies (`react`, `react-dom`,
+47 files in `src`, ~20.3k lines. Three runtime dependencies (`react`, `react-dom`,
 `lucide-react`), four dev dependencies (`vite`, `@vitejs/plugin-react`, `tailwindcss`,
 `@tailwindcss/vite`). No fonts, no stock imagery, no icons beyond lucide (ISC), no
 backend, no environment variables, no secrets.
@@ -266,9 +302,10 @@ Items 1–3 are blockers; 4–6 are quality signals; 7 is the author's own decis
    `npm run smoke -- --shots .shots-dark --theme dark --routes-only`.
 5. **Run the validation trio on a clean install.** Done for this package: `ui8-upload/` was
    copied to a scratch directory, `npm install --prefer-offline` added 79 packages, then
-   `npm run verify` → 621 checks passed, `npm run build` → clean (HomePage its own 13.86 kB
-   chunk, entry 333.11 kB / gzip 105.25 kB), and the full `node scripts/smoke.mjs` →
-   **38 routes · 0 errors · 0 warnings** with all 20 interaction checks. Re-run after any
+   `npm run verify` → 760 checks passed, `npm run build` → clean (HomePage its own 14.95 kB
+   chunk, entry 343.06 kB / gzip 108.48 kB, with HealthPage and ModerationPage code-split
+   separately), and the full `node scripts/smoke.mjs` →
+   **47 routes · 0 errors · 0 warnings** with all 21 interaction checks. Re-run after any
    change, in the packaged copy rather than the repository, so the upload stays free of
    `node_modules/` and `dist/`.
 6. **Package, do not copy.** `npm run package` is the step that keeps development-only files

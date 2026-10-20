@@ -8,7 +8,9 @@ import {
   Check,
   ChevronRight,
   FileText,
+  HeartPulse,
   Plus,
+  ShieldAlert,
   TrendingUp,
   Users,
   UserPlus,
@@ -135,6 +137,26 @@ function AttentionCard({ summary }) {
   const overdue = overdueTasks(state)
 
   const items = [
+    {
+      label: 'Moderation queue',
+      detail: summary.openReports
+        ? `${summary.openReports} open report${summary.openReports === 1 ? '' : 's'}${
+            summary.urgentReports ? ` · ${summary.urgentReports} need a decision` : ''
+          }`
+        : 'Every report handled',
+      tone: summary.urgentReports ? 'danger' : summary.openReports ? 'warning' : 'success',
+      icon: ShieldAlert,
+      to: '/moderation?status=open',
+    },
+    {
+      label: 'Member health',
+      detail: summary.atRiskMembers
+        ? `${summary.atRiskMembers} member${summary.atRiskMembers === 1 ? '' : 's'} drifting — outreach list ready`
+        : 'Everyone is thriving',
+      tone: summary.atRiskMembers ? 'warning' : 'success',
+      icon: HeartPulse,
+      to: '/health?risk=at-risk',
+    },
     {
       label: 'Overdue tasks',
       detail: overdue.length ? `${overdue.length} past their due date` : 'Nothing late',

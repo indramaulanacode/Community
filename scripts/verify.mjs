@@ -6,7 +6,13 @@
  * formatters). Browser behaviour — rendering, dialogs, responsive layout, deep
  * links — is covered by `npm run smoke`, which drives headless Chrome.
  */
-import { MEMBER_STATUSES, loadSeed } from '../src/data/seed.js'
+import {
+  MEMBER_STATUSES,
+  REPORT_KINDS,
+  REPORT_REASONS,
+  REPORT_STATUSES,
+  loadSeed,
+} from '../src/data/seed.js'
 import * as S from '../src/store/selectors.js'
 import {
   addDays,
@@ -48,7 +54,8 @@ const dupCount = (values) => values.length - new Set(values).size
 /* ------------------------------------------------------------------ seed ---- */
 
 console.log('seed: loadSeed() runs and returns every collection')
-check('all collections present', ['members', 'communities', 'events', 'tasks', 'content', 'collections', 'conversations', 'notifications', 'activity', 'analytics'].every((k) => Array.isArray(state[k]) || (k === 'analytics' && typeof state[k] === 'object')), 'missing a top-level key')
+check('all collections present', ['members', 'communities', 'events', 'tasks', 'content', 'collections', 'conversations', 'reports', 'notifications', 'activity', 'analytics'].every((k) => Array.isArray(state[k]) || (k === 'analytics' && typeof state[k] === 'object')), 'missing a top-level key')
+check('seed version is 2', state.version === 2, `got ${state.version}`)
 check('workspace seeded', Boolean(state.workspace?.name && state.workspace.timezone))
 check('current user exists', state.members.some((m) => m.id === state.currentUserId))
 check('prefs complete', ['theme', 'sidebarCollapsed', 'landingPage'].every((k) => k in state.prefs) && typeof state.prefs.notify === 'object')
@@ -152,12 +159,47 @@ for (const conversation of state.conversations) {
     conversation.messages.every((m) => memberIds.has(m.authorId)),
   )
 }
+const channelIds = new Set(state.communities.flatMap((c) => c.channels.map((ch) => ch.id)))
+const messageIds = new Set(state.conversations.flatMap((c) => c.messages.map((m) => m.id)))
+const againstPools = {
+  member: memberIds,
+  content: ids(state.content),
+  thread: channelIds,
+  message: messageIds,
+}
+const reportStatusKeys = REPORT_STATUSES.map((s) => s.key)
+const reportKindKeys = REPORT_KINDS.map((k) => k.key)
+const reportReasonKeys = REPORT_REASONS.map((r) => r.key)
+eq('duplicate report ids', dupCount(state.reports.map((r) => r.id)), 0)
+for (const report of state.reports) {
+  check(`report ${report.id} community resolves`, communityIds.has(report.communityId))
+  check(`report ${report.id} reporter resolves`, memberIds.has(report.reporterId))
+  check(
+    `report ${report.id} target resolves for its kind`,
+    againstPools[report.kind]?.has(report.againstId) === true,
+    `kind ${report.kind} against ${report.againstId}`,
+  )
+  check(`report ${report.id} kind is known`, reportKindKeys.includes(report.kind))
+  check(`report ${report.id} reason is known`, reportReasonKeys.includes(report.reason))
+  check(`report ${report.id} status is known`, reportStatusKeys.includes(report.status))
+  check(
+    `report ${report.id} closure matches its status`,
+    (report.status === 'resolved' || report.status === 'dismissed') ===
+      (Boolean(report.resolvedAt) && Boolean(report.resolution)),
+  )
+  check(
+    `report ${report.id} resolved after created`,
+    !report.resolvedAt || new Date(report.resolvedAt) >= new Date(report.createdAt),
+  )
+  check(`report ${report.id} detail is real copy`, report.detail.length > 40)
+}
 const targetPools = {
   event: ids(state.events),
   task: ids(state.tasks),
   community: communityIds,
   member: memberIds,
   content: ids(state.content),
+  report: ids(state.reports),
 }
 for (const notification of state.notifications) {
   const pool = targetPools[notification.target?.type]
@@ -174,6 +216,39 @@ check('has upcoming events', state.events.some((e) => new Date(e.endsAt) > now))
 check('has past events', state.events.some((e) => new Date(e.endsAt) <= now))
 check('has open tasks', state.tasks.some((t) => t.status !== 'done'))
 check('has unread notifications', state.notifications.some((n) => !n.read))
+check('has open reports', state.reports.some((r) => r.status === 'open'))
+check(
+  'members can be quiet for over a month (health rubric needs the range)',
+  state.members.some((m) => now - new Date(m.lastActiveAt).getTime() > 30 * 86_400_000),
+)
+
+console.log('seed: the moderation story hangs together')
+const hiringChannel = state.communities
+  .find((c) => c.id === 'c-webdev')
+  .channels.find((ch) => ch.name === 'hiring').id
+const urgentReports = state.reports.filter((r) => r.urgent && r.status === 'open')
+eq('two urgent open reports', urgentReports.length, 2)
+check(
+  'both urgent reports name the hiring channel',
+  urgentReports.every((r) => r.kind === 'thread' && r.againstId === hiringChannel),
+)
+eq(
+  'the urgent reports come from m-19 and m-20',
+  [...urgentReports.map((r) => r.reporterId).sort()].join(','),
+  'm-19,m-20',
+)
+const moderationNotice = state.notifications.find((n) => n.title === 'A thread needs your decision')
+check(
+  'the urgent notification points at one of the reports it describes',
+  moderationNotice?.target?.type === 'report' &&
+    urgentReports.some((r) => r.id === moderationNotice.target.id),
+)
+check(
+  'the flag that made the news is in the activity feed',
+  state.activity.some(
+    (a) => a.actorId === 'm-19' && a.verb === 'flagged a thread in' && a.targetId === 'c-webdev',
+  ),
+)
 check(
   'daily history spans two 30-day windows',
   state.analytics.dailyHistory.length >= 59,
@@ -358,6 +433,94 @@ check(
   summary.openTasks + state.tasks.filter((t) => t.status === 'done').length === state.tasks.length,
 )
 eq('unread notifications count', summary.unreadNotifications, unreadBefore)
+
+console.log('selectors: member health is a derived, self-explaining rubric')
+const board = S.healthBoard(state)
+eq('board covers the roster', board.length, state.members.length)
+check('scores are integers in range', board.every((r) => Number.isInteger(r.score) && r.score >= 0 && r.score <= 100))
+const bucketKeys = S.HEALTH_BUCKETS.map((b) => b.key)
+check(
+  'bucket always matches the threshold table',
+  board.every((r) => r.risk === S.HEALTH_BUCKETS.find((b) => r.score >= b.min).key),
+)
+check(
+  'every deducted point shows its reason',
+  board.every((r) => (r.score === 100) === (r.reasons.length === 0)),
+)
+check(
+  'reasons carry labels and tones',
+  board.every((r) => r.reasons.every((x) => x.text.length > 3 && x.tone)),
+)
+check('board is worst first', board.every((r, i, all) => i === 0 || all[i - 1].score <= r.score))
+const hs = S.healthSummary(state)
+eq('buckets sum to the roster', hs.thriving + hs.steady + hs.watch + hs.atRisk, state.members.length)
+eq(
+  'distribution sums to the roster',
+  S.riskDistribution(state).reduce((n, row) => n + row.value, 0),
+  state.members.length,
+)
+eq('dashboard agrees with the board', summary.atRiskMembers, hs.atRisk)
+check('the board has somebody at risk', hs.atRisk >= 1, `${hs.atRisk} at risk`)
+check(
+  'every at-risk row carries at least one danger chip',
+  board.filter((r) => r.risk === 'at-risk').every((r) => r.reasons.some((x) => x.tone === 'danger')),
+)
+check(
+  'an unaccepted invite is never counted as quiet',
+  board.every(
+    (r) => r.member.status !== 'invited' || !r.reasons.some((x) => x.text.startsWith('Quiet')),
+  ),
+)
+eq('the current user reads thriving', board.find((r) => r.member.id === state.currentUserId)?.risk, 'thriving')
+check(
+  'every suspended member is at risk',
+  board.filter((r) => r.member.status === 'suspended').every((r) => r.risk === 'at-risk'),
+)
+
+console.log('selectors: moderation counts track the queue')
+const mc = S.moderationCounts(state)
+eq('open count matches the records', mc.open, state.reports.filter((r) => r.status === 'open').length)
+check('urgent are a subset of open', mc.urgent <= mc.open && mc.urgent >= 1)
+eq(
+  'the dashboard agrees too',
+  summary.openReports,
+  mc.open,
+)
+check(
+  'queue is oldest first',
+  S.reportsFor(state).every(
+    (r, i, all) => i === 0 || new Date(all[i - 1].createdAt) <= new Date(r.createdAt),
+  ),
+)
+eq(
+  'community scoping matches the records',
+  S.reportsFor(state, 'c-webdev').length,
+  state.reports.filter((r) => r.communityId === 'c-webdev').length,
+)
+check('c-webdev has open work', S.reportsFor(state, 'c-webdev').some((r) => r.status === 'open'))
+
+const resolvedClone = {
+  ...state,
+  reports: state.reports.map((r) =>
+    r.id === state.reports[0].id
+      ? { ...r, status: 'resolved', resolvedAt: new Date().toISOString(), resolution: 'Done' }
+      : r,
+  ),
+}
+eq('resolving lowers the open count', S.moderationCounts(resolvedClone).open, mc.open - 1)
+
+const suspendTarget = state.members.find((m) => m.status === 'active' && m.id !== state.currentUserId)
+const suspendedClone = {
+  ...state,
+  members: state.members.map((m) =>
+    m.id === suspendTarget.id ? { ...m, status: 'suspended' } : m,
+  ),
+}
+check(
+  'suspending a member drops their score',
+  S.memberHealth(suspendedClone.members.find((m) => m.id === suspendTarget.id)).score <
+    S.memberHealth(suspendTarget).score,
+)
 
 /* ---------------------------------------------------------------- result ---- */
 

@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils.js'
 import { Link } from '../../lib/router.jsx'
 import { Avatar, Badge } from '../ui/Data.jsx'
 import { useApp } from '../../store/AppStore.jsx'
+import { healthSummary, moderationCounts } from '../../store/selectors.js'
 
 export function BrandMark({ className = '' }) {
   return (
@@ -24,7 +25,7 @@ export function BrandMark({ className = '' }) {
   )
 }
 
-function NavList({ activeNav, collapsed, onNavigate, unreadCount }) {
+function NavList({ activeNav, collapsed, onNavigate, badges }) {
   return (
     <nav aria-label="Main" className="flex flex-col gap-5">
       {NAV_GROUPS.map((group) => (
@@ -37,7 +38,7 @@ function NavList({ activeNav, collapsed, onNavigate, unreadCount }) {
           {group.items.map((item) => {
             const active = item.key === activeNav
             const Icon = item.icon
-            const badge = item.key === 'notifications' ? unreadCount : 0
+            const badge = badges[item.key] || 0
             return (
               <Link
                 key={item.key}
@@ -57,7 +58,7 @@ function NavList({ activeNav, collapsed, onNavigate, unreadCount }) {
                 {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
                 {!collapsed && badge > 0 && (
                   <span className="ml-auto shrink-0 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white tnum">
-                    {badge}
+                    {badge > 9 ? '9+' : badge}
                   </span>
                 )}
                 {collapsed && badge > 0 && (
@@ -116,7 +117,12 @@ function CommunityShortcuts() {
 export default function Sidebar({ activeNav, mobileOpen, onCloseMobile }) {
   const { state, actions, currentMember } = useApp()
   const collapsed = state.prefs.sidebarCollapsed
-  const unread = state.notifications.filter((n) => !n.read).length
+  /* One badge map so new attention surfaces never need a special case here. */
+  const badges = {
+    notifications: state.notifications.filter((n) => !n.read).length,
+    moderation: moderationCounts(state).open,
+    health: healthSummary(state).atRisk,
+  }
 
   return (
     <>
@@ -146,7 +152,7 @@ export default function Sidebar({ activeNav, mobileOpen, onCloseMobile }) {
             <div className="min-h-0 flex-1 overflow-y-auto">
               <NavList
                 activeNav={activeNav}
-                unreadCount={unread}
+                badges={badges}
                 onNavigate={onCloseMobile}
               />
               <div className="mt-5 border-t border-line pt-4">
@@ -183,7 +189,7 @@ export default function Sidebar({ activeNav, mobileOpen, onCloseMobile }) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <NavList activeNav={activeNav} collapsed={collapsed} unreadCount={unread} />
+          <NavList activeNav={activeNav} collapsed={collapsed} badges={badges} />
           {!collapsed && (
             <div className="mt-5 border-t border-line pt-4">
               <CommunityShortcuts />

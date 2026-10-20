@@ -5,11 +5,13 @@ import {
   Command,
   Download,
   FolderOpen,
+  HeartPulse,
   Keyboard,
   Minus,
   Monitor,
   Moon,
   Palette,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Sun,
@@ -39,6 +41,10 @@ const SCREEN_BLURBS = {
     'Greeting, live totals, a 12-month growth chart, the attention queue, your task list and the next five events.',
   analytics:
     'Computed metrics for membership, engagement, content and channels, with a 7/30/90-day/all range switcher and CSV export.',
+  health:
+    'A derived member-health board: every person scored from activity, status and rooms, worst first, each deduction explained — then exported for outreach.',
+  moderation:
+    'The real report queue members file against messages, threads, posts and each other: work it oldest-first, resolve or dismiss, escalate, with an SLA age on every row.',
   communities:
     'Grid or table with favourites and search, then a per-community roster, channels, moderation queue and events.',
   members:
@@ -70,10 +76,22 @@ const USE_CASES = [
     screens: ['events', 'dashboard', 'messages'],
   },
   {
+    icon: ShieldAlert,
+    title: 'Work a moderation queue that is actually real',
+    body: 'Members flag messages, threads, posts and each other. Reports land in a shared queue with an SLA clock, and resolving, dismissing or escalating one moves the sidebar badge, the dashboard and the community roster in the same click.',
+    screens: ['moderation', 'communities', 'health'],
+  },
+  {
     icon: ShieldCheck,
-    title: 'Keep a moderation queue honest',
-    body: 'Work the queue on the community page, turn follow-ups into tasks with assignees, priorities and deadlines, and let the overdue filter find what slipped.',
-    screens: ['communities', 'tasks', 'notifications'],
+    title: 'Follow moderation decisions through to done',
+    body: 'Turn a queue outcome into a task with an assignee, priority and deadline, and let the overdue filter surface what slipped — the record of what you decided stays on both the report and the community.',
+    screens: ['moderation', 'tasks', 'notifications'],
+  },
+  {
+    icon: HeartPulse,
+    title: 'Catch the members who are about to leave',
+    body: 'A derived health score ranks the whole roster from real signals — how long since they posted, invites that never landed, rooms they quietly left. Every deduction is named, so outreach is a list, not a guess.',
+    screens: ['health', 'members', 'analytics'],
   },
   {
     icon: FolderOpen,
@@ -209,9 +227,9 @@ export default function HomePage() {
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-content-2 sm:text-[15px]">
               Communities is a front-end dashboard template for directories, rosters, events,
-              tasks, content and analytics. Eleven screens, one data store, and every number on
-              every screen derived from the same records — so you can click through the whole
-              product before writing a line of your own.
+              tasks, content and analytics. {NAV_ITEMS.length} screens, one data store, and every
+              number on every screen derived from the same records — so you can click through the
+              whole product before writing a line of your own.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">

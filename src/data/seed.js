@@ -439,6 +439,19 @@ const buildMembers = () => {
     // instead of a flat random spread across ten days.
     const lastActiveHours = isSelf ? 0 : Math.floor(Math.pow(rand(), 2.4) * 260)
     const online = lastActiveHours < 3 && status === 'active'
+    // Members the workspace already marked inactive or suspended have usually
+    // been quiet far longer than the presence window above. And a slice of the
+    // still-active members have started drifting without anybody noticing —
+    // that is what the Member health rubric is for. Extending the gap strictly
+    // after `online` is set keeps every presence-derived count consistent.
+    let quietExtra = 0
+    if (!isSelf) {
+      if (status === 'inactive' || status === 'suspended') {
+        quietExtra = 24 * (30 + Math.floor(rand() * 90))
+      } else if (status === 'active' && rand() < 0.12) {
+        quietExtra = 24 * (16 + Math.floor(rand() * 40))
+      }
+    }
 
     let handle = handleFor(person.name)
     while (usedHandles.has(handle)) handle = `${handle}${index}`
@@ -459,7 +472,7 @@ const buildMembers = () => {
       role,
       status,
       joinedAt: new Date(TODAY.getTime() - joinedDaysAgo * DAY_MS).toISOString(),
-      lastActiveAt: new Date(TODAY.getTime() - lastActiveHours * 3_600_000).toISOString(),
+      lastActiveAt: new Date(TODAY.getTime() - (lastActiveHours + quietExtra) * 3_600_000).toISOString(),
       online,
       hue: PRESENCE_HUES[index % PRESENCE_HUES.length],
       level: isSelf ? 10 : Math.floor(rand() * 12) + 1,
@@ -675,6 +688,170 @@ const buildConversations = (communities, members) => {
   })
 }
 
+/* --------------------------------------------------------------- reports --- */
+
+/**
+ * Moderation reports are real records — someone flagged something, someone has
+ * to act — so they are seeded like activity rather than derived. `againstId`
+ * is resolved from the already-built collections (a channel by name, a message
+ * from its community's conversation, the first published item of a community)
+ * so the references cannot drift when the seed changes. The first two rows are
+ * the pair the urgent "A thread needs your decision" notification describes.
+ */
+const buildReports = (members, communities, conversations, items) => {
+  const rosterOf = (communityId) => {
+    const community = communities.find((c) => c.id === communityId)
+    if (!community) throw new Error(`Unknown community in report seed: ${communityId}`)
+    return community.memberIds
+  }
+  const channelOf = (communityId, name) => {
+    const channel = communities
+      .find((c) => c.id === communityId)
+      ?.channels.find((ch) => ch.name === name)
+    if (!channel) throw new Error(`No ${name} channel in ${communityId}`)
+    return channel.id
+  }
+  const messageOf = (communityId, index) => {
+    const conversation = conversations.find((c) => c.communityId === communityId)
+    const message = conversation?.messages[index % conversation.messages.length]
+    if (!message) throw new Error(`No conversation for ${communityId}`)
+    return message.id
+  }
+  const contentOf = (communityId) => {
+    const item = items.find((x) => x.communityId === communityId && x.status === 'published')
+    if (!item) throw new Error(`No published content in ${communityId}`)
+    return item.id
+  }
+  // Reported members come out of the roster so the target is always somebody
+  // in the room the report belongs to. Index 0 is m-paul on some rosters; use
+  // deeper slots.
+  const memberOf = (communityId, index) => {
+    const roster = rosterOf(communityId)
+    const id = roster[(index + 1) % roster.length]
+    if (!members.some((m) => m.id === id)) throw new Error(`No member ${id} in ${communityId}`)
+    return id
+  }
+
+  const specs = [
+    {
+      id: 'r-01', kind: 'thread', communityId: 'c-webdev', reporterId: 'm-19',
+      againstId: () => channelOf('c-webdev', 'hiring'), reason: 'duplicate',
+      urgent: true, status: 'open', hoursAgo: 12,
+      detail:
+        'The same "hiring a senior React dev" post, five times this week. The reporter asks whether the channel needs a posting cooldown, not a ban.',
+    },
+    {
+      id: 'r-02', kind: 'thread', communityId: 'c-webdev', reporterId: 'm-20',
+      againstId: () => channelOf('c-webdev', 'hiring'), reason: 'spam',
+      urgent: true, status: 'open', hoursAgo: 20,
+      detail:
+        'Recruiter blast with no intro and no flair, posted nine minutes after joining. Three members have said the same thing in three different threads.',
+    },
+    {
+      id: 'r-03', kind: 'message', communityId: 'c-design-circle',
+      reporterId: () => rosterOf('c-design-circle')[2],
+      againstId: () => messageOf('c-design-circle', 2), reason: 'off-topic',
+      urgent: false, status: 'open', hoursAgo: 5,
+      detail:
+        'The critique thread turned into a client-pricing argument, with rates named out loud. Two of the designers involved asked for it to be split or hidden.',
+    },
+    {
+      id: 'r-04', kind: 'member', communityId: 'c-indie-games',
+      reporterId: () => rosterOf('c-indie-games')[2],
+      againstId: () => memberOf('c-indie-games', 3), reason: 'harassment',
+      urgent: false, status: 'open', hoursAgo: 30,
+      detail:
+        'Repeated "this game is dead" replies under one developer\'s playtest posts for six days straight. The reporter says it stopped being feedback in week two.',
+    },
+    {
+      id: 'r-05', kind: 'content', communityId: 'c-creator-lab',
+      reporterId: () => rosterOf('c-creator-lab')[3],
+      againstId: () => contentOf('c-creator-lab'), reason: 'spam',
+      urgent: false, status: 'open', hoursAgo: 44,
+      detail:
+        'A "resources" post that is four hundred words about one paid course with an affiliate link in the footer. The room allows self-promo; this is only self-promo.',
+    },
+    {
+      id: 'r-06', kind: 'message', communityId: 'c-product-guild',
+      reporterId: () => rosterOf('c-product-guild')[1],
+      againstId: () => messageOf('c-product-guild', 4), reason: 'inappropriate',
+      urgent: false, status: 'open', hoursAgo: 52,
+      detail:
+        'A joke in the build-logs channel that named a real user of the product being built. The poster deleted it an hour later; screenshots are going round.',
+    },
+    {
+      id: 'r-07', kind: 'thread', communityId: 'c-founders',
+      reporterId: () => rosterOf('c-founders')[4],
+      againstId: () => channelOf('c-founders', 'off-topic'), reason: 'privacy',
+      urgent: false, status: 'open', hoursAgo: 68,
+      detail:
+        'A screenshot in off-topic shows a client name on a contract in the background. Chatham House rule applies to the room, not to other people\'s deals.',
+    },
+    {
+      id: 'r-08', kind: 'member', communityId: 'c-frontend-school',
+      reporterId: () => rosterOf('c-frontend-school')[3],
+      againstId: () => memberOf('c-frontend-school', 5), reason: 'spam',
+      urgent: false, status: 'open', hoursAgo: 80,
+      detail:
+        'One account posting its own coursework links in cohort, homework and mentor-lounge within the same hour, five days running. Might be a bot; might be enthusiastic.',
+    },
+    {
+      id: 'r-09', kind: 'message', communityId: 'c-webdev',
+      reporterId: () => rosterOf('c-webdev')[4],
+      againstId: () => messageOf('c-webdev', 1), reason: 'off-topic',
+      urgent: false, status: 'reviewing', hoursAgo: 96,
+      detail:
+        'Help-frontend turned into a framework argument with two regulars involved. Under review for whether to lock the branch of the thread or just cool it down.',
+    },
+    {
+      id: 'r-10', kind: 'content', communityId: 'c-design-circle',
+      reporterId: () => rosterOf('c-design-circle')[4],
+      againstId: () => contentOf('c-design-circle'), reason: 'privacy',
+      urgent: false, status: 'reviewing', hoursAgo: 110,
+      detail:
+        'A teardown post includes client work under NDA, name redacted but recognisable to anyone in that niche. Reviewing with the author before it stays down.',
+    },
+    {
+      id: 'r-11', kind: 'thread', communityId: 'c-indie-games',
+      reporterId: () => rosterOf('c-indie-games')[1],
+      againstId: () => channelOf('c-indie-games', 'assets'), reason: 'inappropriate',
+      urgent: false, status: 'resolved', hoursAgo: 150, resolvedHoursAgo: 140,
+      resolution: 'Thread removed, member warned in private, asset licence rules re-pinned.',
+      detail:
+        'An "asset pack" in the shared channel that is a ripped commercial bundle. The reporter linked the store page it came from.',
+    },
+    {
+      id: 'r-12', kind: 'member', communityId: 'c-wellness',
+      reporterId: () => rosterOf('c-wellness')[2],
+      againstId: () => memberOf('c-wellness', 2), reason: 'off-topic',
+      urgent: false, status: 'dismissed', hoursAgo: 168, resolvedHoursAgo: 160,
+      resolution: 'Not a violation — off-topic Fridays are allowed and the standing post predates the rule.',
+      detail:
+        'A member reported for "spamming stretch reminders" in the walk-and-talk channel. Someone else reported the same thing last month; same answer.',
+    },
+  ]
+
+  return specs.map((spec) => {
+    const closed = spec.status === 'resolved' || spec.status === 'dismissed'
+    return {
+      id: spec.id,
+      kind: spec.kind,
+      communityId: spec.communityId,
+      reporterId: typeof spec.reporterId === 'function' ? spec.reporterId() : spec.reporterId,
+      againstId: spec.againstId(),
+      reason: spec.reason,
+      detail: spec.detail,
+      status: spec.status,
+      urgent: spec.urgent,
+      createdAt: new Date(TODAY.getTime() - spec.hoursAgo * 3_600_000).toISOString(),
+      resolvedAt: closed
+        ? new Date(TODAY.getTime() - spec.resolvedHoursAgo * 3_600_000).toISOString()
+        : null,
+      resolution: closed ? spec.resolution : null,
+    }
+  })
+}
+
 const buildNotifications = (communities, members, events, tasks, items) => {
   const templates = [
     {
@@ -713,7 +890,7 @@ const buildNotifications = (communities, members, events, tasks, items) => {
       kind: 'moderation',
       title: 'A thread needs your decision',
       body: 'Two members flagged the hiring channel for duplicate postings.',
-      target: { type: 'community', id: 'c-webdev' },
+      target: { type: 'report', id: 'r-02' },
       hoursAgo: 20,
       actorId: 'm-20',
       urgent: true,
@@ -890,12 +1067,13 @@ export function loadSeed() {
   const tasks = buildTasks(communities, members)
   const { collections, items } = buildContent(communities, members)
   const conversations = buildConversations(communities, members)
+  const reports = buildReports(members, communities, conversations, items)
   const notifications = buildNotifications(communities, members, events, tasks, items)
   const activity = buildActivity(members, communities, items, tasks, events)
   const analytics = buildAnalytics(members)
 
   return {
-    version: 1,
+    version: 2,
     seededAt: TODAY.toISOString(),
     currentUserId: 'm-paul',
     workspace: {
@@ -913,6 +1091,7 @@ export function loadSeed() {
     collections,
     content: items,
     conversations,
+    reports,
     notifications,
     activity,
     analytics,
@@ -967,4 +1146,27 @@ export const CONTENT_STATUSES = [
   { key: 'draft', label: 'Draft', tone: 'neutral' },
   { key: 'scheduled', label: 'Scheduled', tone: 'warning' },
   { key: 'published', label: 'Published', tone: 'success' },
+]
+
+export const REPORT_KINDS = [
+  { key: 'message', label: 'Message' },
+  { key: 'member', label: 'Member' },
+  { key: 'content', label: 'Content' },
+  { key: 'thread', label: 'Thread' },
+]
+
+export const REPORT_REASONS = [
+  { key: 'spam', label: 'Spam', tone: 'danger' },
+  { key: 'duplicate', label: 'Duplicate posting', tone: 'warning' },
+  { key: 'harassment', label: 'Harassment', tone: 'danger' },
+  { key: 'inappropriate', label: 'Inappropriate', tone: 'danger' },
+  { key: 'off-topic', label: 'Off-topic', tone: 'neutral' },
+  { key: 'privacy', label: 'Privacy', tone: 'warning' },
+]
+
+export const REPORT_STATUSES = [
+  { key: 'open', label: 'Open', tone: 'danger' },
+  { key: 'reviewing', label: 'Reviewing', tone: 'warning' },
+  { key: 'resolved', label: 'Resolved', tone: 'success' },
+  { key: 'dismissed', label: 'Dismissed', tone: 'neutral' },
 ]
